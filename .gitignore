@@ -1,0 +1,29 @@
+# Java
+build/
+.gradle/
+*.class
+*.jar
+*.war
+*.ear
+
+# Node
+web-admin/node_modules/
+web-admin/dist/
+web-admin/.env
+
+# Environment
+.env
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+postgres_data/
+keycloak_data/
+
+# OS
+Thumbs.db
+.DS_Store

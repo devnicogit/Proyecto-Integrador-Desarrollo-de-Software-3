@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: ecoroute-backend
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+server:
+  port: ${SERVER_PORT:8081}
+  error:
+    include-message: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus
+  endpoint:
+    health:
+      show-details: always
+
+aws:
+  region: ${AWS_REGION:us-east-1}
+  endpoint: ${AWS_ENDPOINT:http://localhost:4566}
+  access-key-id: ${AWS_ACCESS_KEY_ID:test}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY:test}
+  s3:
+    bucket-name: ${S3_BUCKET_NAME:ecoroute-proofs}
+  sqs:
+    queue-url: ${SQS_QUEUE_URL:http://localhost:4566/000000000000/ecoroute-notifications}

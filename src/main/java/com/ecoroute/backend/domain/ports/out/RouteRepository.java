@@ -1,0 +1,14 @@
+package com.ecoroute.backend.domain.ports.out;
+
+import com.ecoroute.backend.domain.model.Route;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.time.LocalDate;
+
+public interface RouteRepository {
+    Mono<Route> save(Route route);
+    Mono<Route> findById(Long id);
+    Flux<Route> findByDriverIdAndDate(Long driverId, LocalDate date);
+    Flux<Route> findAll();
+}

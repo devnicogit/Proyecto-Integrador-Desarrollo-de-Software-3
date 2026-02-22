@@ -1,0 +1,34 @@
+spring:
+  config:
+    activate:
+      on-profile: docker
+  
+  r2dbc:
+    url: r2dbc:postgresql://postgres:5432/${DB_NAME:ecoroute}
+    username: ${DB_USER:user}
+    password: ${DB_PASSWORD:password}
+  
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://postgres:5432/${DB_NAME:ecoroute}
+    user: ${DB_USER:user}
+    password: ${DB_PASSWORD:password}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak:8080/realms/ecoroute
+          jwk-set-uri: http://keycloak:8080/realms/ecoroute/protocol/openid-connect/certs
+
+aws:
+  endpoint: http://localstack:4566
+  sqs:
+    queue-url: http://localstack:4566/000000000000/ecoroute-notifications
+
+server:
+  port: 8081
+
+logging:
+  level:
+    com.ecoroute.backend: INFO
