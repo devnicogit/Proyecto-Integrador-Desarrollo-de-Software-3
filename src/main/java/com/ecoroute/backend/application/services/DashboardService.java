@@ -36,4 +36,8 @@ public class DashboardService {
     public Flux<DriverPerformanceDTO> getDeliveriesByDriver(Long driverId) {
         return springDataOrderRepository.countDeliveriesByDriverFiltered(driverId);
     }
+
+    public Flux<DriverPerformanceDTO> getOrdersByDistrict() {
+        return springDataOrderRepository.countOrdersByDistrict();
+    }
 }

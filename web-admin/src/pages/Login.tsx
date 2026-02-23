@@ -42,7 +42,8 @@ const Login: React.FC = () => {
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
-      minHeight: '100vh',
+      width: '100vw',
+      height: '100vh',
       backgroundColor: '#f1f5f9'
     }}>
       <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '2.5rem' }}>

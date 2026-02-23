@@ -1,6 +1,17 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, Map, Users, Truck, LogOut, User as UserIcon } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  ShoppingCart, 
+  Map, 
+  Users, 
+  Truck, 
+  LogOut, 
+  User as UserIcon, 
+  Home, 
+  ShoppingBag, 
+  BarChart3 
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Sidebar: React.FC = () => {
@@ -28,7 +39,8 @@ const Sidebar: React.FC = () => {
       height: '100vh',
       position: 'fixed',
       left: 0,
-      top: 0
+      top: 0,
+      zIndex: 100
     }}>
       <div style={{ padding: '0 1.5rem 1.5rem 1.5rem', borderBottom: '1px solid #334155' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#3b82f6', letterSpacing: '-0.025em' }}>EcoRoute</h1>
@@ -44,7 +56,7 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav style={{ flex: 1, padding: '1.5rem 0' }}>
-        <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
           <li>
             <NavLink to="/" style={({ isActive }) => ({
               display: 'flex',
@@ -54,7 +66,25 @@ const Sidebar: React.FC = () => {
               color: isActive ? '#3b82f6' : '#94a3b8',
               backgroundColor: isActive ? '#1e1b4b' : 'transparent',
               borderLeft: isActive ? '4px solid #3b82f6' : '4px solid transparent',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              fontWeight: isActive ? 600 : 400
+            })}>
+              <Home size={20} />
+              <span>Inicio</span>
+            </NavLink>
+          </li>
+
+          <li>
+            <NavLink to="/dashboard" style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.75rem 1.5rem',
+              color: isActive ? '#3b82f6' : '#94a3b8',
+              backgroundColor: isActive ? '#1e1b4b' : 'transparent',
+              borderLeft: isActive ? '4px solid #3b82f6' : '4px solid transparent',
+              transition: 'all 0.2s',
+              fontWeight: isActive ? 600 : 400
             })}>
               <LayoutDashboard size={20} />
               <span>Dashboard</span>
@@ -72,7 +102,8 @@ const Sidebar: React.FC = () => {
                   color: isActive ? '#3b82f6' : '#94a3b8',
                   backgroundColor: isActive ? '#1e1b4b' : 'transparent',
                   borderLeft: isActive ? '4px solid #3b82f6' : '4px solid transparent',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  fontWeight: isActive ? 600 : 400
                 })}>
                   <ShoppingCart size={20} />
                   <span>Pedidos</span>
@@ -87,7 +118,8 @@ const Sidebar: React.FC = () => {
                   color: isActive ? '#3b82f6' : '#94a3b8',
                   backgroundColor: isActive ? '#1e1b4b' : 'transparent',
                   borderLeft: isActive ? '4px solid #3b82f6' : '4px solid transparent',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  fontWeight: isActive ? 600 : 400
                 })}>
                   <Map size={20} />
                   <span>Rutas</span>
@@ -107,7 +139,8 @@ const Sidebar: React.FC = () => {
                   color: isActive ? '#3b82f6' : '#94a3b8',
                   backgroundColor: isActive ? '#1e1b4b' : 'transparent',
                   borderLeft: isActive ? '4px solid #3b82f6' : '4px solid transparent',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  fontWeight: isActive ? 600 : 400
                 })}>
                   <Users size={20} />
                   <span>Conductores</span>
@@ -122,10 +155,43 @@ const Sidebar: React.FC = () => {
                   color: isActive ? '#3b82f6' : '#94a3b8',
                   backgroundColor: isActive ? '#1e1b4b' : 'transparent',
                   borderLeft: isActive ? '4px solid #3b82f6' : '4px solid transparent',
-                  transition: 'all 0.2s'
+                  transition: 'all 0.2s',
+                  fontWeight: isActive ? 600 : 400
                 })}>
                   <Truck size={20} />
                   <span>Vehículos</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/purchases" style={({ isActive }) => ({
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.75rem 1.5rem',
+                  color: isActive ? '#3b82f6' : '#94a3b8',
+                  backgroundColor: isActive ? '#1e1b4b' : 'transparent',
+                  borderLeft: isActive ? '4px solid #3b82f6' : '4px solid transparent',
+                  transition: 'all 0.2s',
+                  fontWeight: isActive ? 600 : 400
+                })}>
+                  <ShoppingBag size={20} />
+                  <span>Compras</span>
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/reports" style={({ isActive }) => ({
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.75rem 1.5rem',
+                  color: isActive ? '#3b82f6' : '#94a3b8',
+                  backgroundColor: isActive ? '#1e1b4b' : 'transparent',
+                  borderLeft: isActive ? '4px solid #3b82f6' : '4px solid transparent',
+                  transition: 'all 0.2s',
+                  fontWeight: isActive ? 600 : 400
+                })}>
+                  <BarChart3 size={20} />
+                  <span>Reportes</span>
                 </NavLink>
               </li>
             </>

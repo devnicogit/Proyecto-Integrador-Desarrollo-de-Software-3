@@ -22,8 +22,12 @@ export interface Route {
   createdAt: string;
 }
 
-export const getAllRoutes = async (): Promise<Route[]> => {
-  const response = await api.get<Route[]>('/routes');
+export const getAllRoutes = async (date?: string, status?: string): Promise<Route[]> => {
+  const params = new URLSearchParams();
+  if (date) params.append('date', date);
+  if (status) params.append('status', status);
+  
+  const response = await api.get<Route[]>(`/routes?${params.toString()}`);
   return response.data;
 };
 

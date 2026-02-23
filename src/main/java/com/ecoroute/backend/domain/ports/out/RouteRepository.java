@@ -11,4 +11,5 @@ public interface RouteRepository {
     Mono<Route> findById(Long id);
     Flux<Route> findByDriverIdAndDate(Long driverId, LocalDate date);
     Flux<Route> findAll();
+    Flux<Route> findByFilters(LocalDate date, com.ecoroute.backend.domain.model.RouteStatus status);
 }

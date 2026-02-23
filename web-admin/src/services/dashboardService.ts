@@ -48,6 +48,11 @@ export const getDeliveriesByDriver = async (driverId?: string): Promise<DriverPe
   return response.data;
 };
 
+export const getOrdersByDistrict = async (): Promise<DriverPerformance[]> => {
+  const response = await api.get<DriverPerformance[]>('/dashboard/orders-by-district');
+  return response.data;
+};
+
 export const getFleetSummary = async (): Promise<FleetSummary> => {
   const [drivers, vehicles, routes] = await Promise.all([
     api.get('/drivers'),

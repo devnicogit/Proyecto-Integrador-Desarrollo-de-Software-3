@@ -41,4 +41,10 @@ public class R2dbcRouteRepository implements RouteRepository {
         return springDataRouteRepository.findAll()
                 .map(RoutePersistenceMapper::toDomain);
     }
+
+    @Override
+    public Flux<Route> findByFilters(LocalDate date, com.ecoroute.backend.domain.model.RouteStatus status) {
+        return springDataRouteRepository.findByFilters(date, status != null ? status.name() : null)
+                .map(RoutePersistenceMapper::toDomain);
+    }
 }

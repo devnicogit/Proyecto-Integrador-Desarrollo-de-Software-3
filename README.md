@@ -1,45 +1,49 @@
 # EcoRoute - Sistema de Gestión Logística Inteligente
 
-EcoRoute es una plataforma integral diseñada para optimizar la logística de última milla, permitiendo el seguimiento en tiempo real, la gestión eficiente de rutas y el aseguramiento de la calidad en las entregas.
+EcoRoute es una plataforma enterprise diseñada para la optimización de logística de última milla, centrada en la eficiencia operativa, trazabilidad en tiempo real y análisis de KPIs para el mercado peruano.
 
 ## 🚀 Funcionalidades Principales
 
-### 1. Trazabilidad y Seguimiento en Tiempo Real
-- **Seguimiento GPS:** Visualización en mapa del recorrido histórico y posición actual de los vehículos.
-- **Simulación de Movimiento:** Herramientas integradas para simular el desplazamiento de conductores sin necesidad de hardware físico.
+### 1. Panel de Control y Bienvenida
+- **Pantalla de Inicio:** Interfaz centralizada para acceso rápido a módulos mediante tarjetas interactivas.
+- **Layout Full-Width:** Diseño optimizado para aprovechar todo el ancho de pantalla en centros de control.
+- **Login Centrado:** Interfaz de acceso profesional y minimalista.
 
-### 2. Planificación de Rutas Inteligente
-- **Cálculo de Distancias:** Implementación del algoritmo de **Haversine** para calcular kilometrajes reales entre puntos de entrega.
-- **Gestión de Carga:** Asignación de vehículos y conductores optimizada por disponibilidad.
+### 2. Trazabilidad GPS e Inteligencia de Ruteo
+- **Algoritmo de Proximidad:** Ordenamiento automático de paradas (Vecino más Cercano) para minimizar tiempos de recorrido.
+- **Visualización Dinámica:** Mapa con dos capas: Ruta Planificada (Gris) y Recorrido Real (Azul).
+- **Paradas Numeradas:** Identificación clara de la secuencia de entrega (Parada #1, #2, etc.) con Tooltips permanentes.
+- **Limpieza Dinámica:** Los destinos completados desaparecen del mapa en tiempo real para enfocar la operación pendiente.
 
-### 3. Módulo de Evidencias Digitales
-- **Pruebas de Entrega:** Captura de fotos y firmas digitales almacenadas de forma segura en **AWS S3** (Simulado con Localstack).
-- **Comprobantes PDF:** Generación automática de reportes de entrega profesionales descargables desde el panel administrativo.
+### 3. Gestión Operativa Escalable
+- **Filtros Avanzados:** Gestión de despacho segmentada por Hoy, Mañana e Histórico.
+- **Paginación Inteligente:** Tablas optimizadas para manejar flotas de más de 200 vehículos y miles de pedidos (10 registros por página).
+- **Geocodificación:** Botón de localización automática que convierte direcciones de texto en coordenadas GPS reales usando OpenStreetMap.
 
-### 4. Dashboard de Control (KPIs)
-- **Rendimiento de Entregas:** Gráficos comparativos de entregas "A Tiempo" vs "Retrasadas".
-- **Productividad:** Gráficos de barras por conductor con métricas de desempeño.
-- **Filtros Avanzados:** Filtrado dinámico por conductor, fechas y estados.
+### 4. Módulo de Evidencias y Documentación
+- **Evidencia Digital:** Captura de fotos y firmas almacenadas en AWS S3.
+- **Reportes PDF:** Generación de comprobantes de entrega profesionales descargables.
+- **Auto-Completado:** Las rutas se cierran automáticamente al detectar la última entrega del manifiesto.
 
-### 5. Validaciones Contextualizadas (Perú)
-- **Formatos Locales:** Validación de placas (ABC-123), teléfonos (9 dígitos) y licencias peruanas.
-- **Seguridad de Datos:** Integración de Bean Validation (JSR-303) en el backend y validaciones reactivas en el frontend.
+### 5. Analítica de Negocio (Dashboard)
+- **Rendimiento (KPI):** Gráficos de entregas "A Tiempo" vs "Retrasadas".
+- **Productividad:** Desempeño por conductor con visualización multi-color.
+- **Geomarketing:** Distribución de pedidos por distritos de Lima.
+- **Estado de Flota:** Indicadores visuales de unidades libres y en mantenimiento.
 
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ Arquitectura y Tecnologías
 
-- **Backend:** Java 17, Spring Boot 3.5, WebFlux (Reactivo), R2DBC.
-- **Frontend:** React (TypeScript), Leaflet (Mapas), Chart.js.
-- **Seguridad:** Keycloak (OAuth2/JWT).
-- **Infraestructura:** Docker, PostgreSQL, Localstack (AWS S3/SQS).
+- **Backend:** Java 17, Spring Boot 3.5, WebFlux (Programación Reactiva), R2DBC.
+- **Frontend:** React 19, TypeScript, Vite, Leaflet, Chart.js.
+- **Base de Datos:** PostgreSQL 14 con esquema consolidado (Core + Enterprise Expansion).
+- **Infraestructura:** Docker Compose, Localstack (S3/SQS), Keycloak.
 
-## 📦 Ejecución del Proyecto
+## 📦 Ejecución
 
-1. Levantar el ambiente:
-   ```bash
-   docker-compose up -d --build
-   ```
-2. Acceder al Panel: `http://localhost:3000`
-3. Credenciales Demo: `mock_ADMIN`
+```bash
+docker-compose up -d --build
+```
+Acceso: `http://localhost:3000` | Credenciales: `admin / admin123`
 
 ---
 © 2026 EcoRoute Logistics.

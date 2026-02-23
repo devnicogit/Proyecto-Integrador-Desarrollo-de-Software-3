@@ -29,12 +29,12 @@ public class RouteUseCasesImpl implements CreateRouteUseCase, UpdateRouteStatusU
     public Mono<Route> createRoute(Route route) {
         return routeRepository.findAll()
                 .filter(r -> r.routeDate().equals(route.routeDate()) && 
-                            (r.status() != RouteStatus.COMPLETED && r.status() != RouteStatus.CANCELLED))
+                            (r.status() == RouteStatus.PLANNED || r.status() == RouteStatus.IN_PROGRESS))
                 .filter(r -> r.driverId().equals(route.driverId()) || r.vehicleId().equals(route.vehicleId()))
                 .collectList()
                 .flatMap(conflicts -> {
                     if (!conflicts.isEmpty()) {
-                        return Mono.error(new RuntimeException("El conductor o vehículo ya tiene una ruta activa para esta fecha"));
+                        return Mono.error(new RuntimeException("El conductor o vehículo ya tiene una ruta activa (Planeada o En curso) para esta fecha. Debe finalizar la anterior primero."));
                     }
                     return routeRepository.save(route);
                 });
@@ -46,8 +46,11 @@ public class RouteUseCasesImpl implements CreateRouteUseCase, UpdateRouteStatusU
         return routeRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Route not found")))
                 .flatMap(existingRoute -> {
-                    // Calculate distance if starting route
-                    Mono<Double> distanceMono = (status == RouteStatus.IN_PROGRESS) 
+                    // Calculate distance if starting route OR completing if it's 0
+                    boolean shouldCalculate = (status == RouteStatus.IN_PROGRESS) || 
+                                             (status == RouteStatus.COMPLETED && existingRoute.totalDistanceKm() <= 0);
+
+                    Mono<Double> distanceMono = shouldCalculate 
                             ? calculateRouteDistance(id) 
                             : Mono.just(existingRoute.totalDistanceKm());
 
@@ -76,22 +79,46 @@ public class RouteUseCasesImpl implements CreateRouteUseCase, UpdateRouteStatusU
                 .map(orders -> {
                     if (orders.isEmpty()) return 0.0;
                     
-                    double totalDist = 0.0;
+                    // Optimization: Sort orders by proximity (Nearest Neighbor)
+                    java.util.List<Order> sortedOrders = new java.util.ArrayList<>();
+                    java.util.List<Order> remainingOrders = new java.util.ArrayList<>(orders);
+                    
                     double currentLat = START_LAT;
                     double currentLon = START_LON;
+                    double totalDist = 0.0;
 
-                    for (Order order : orders) {
-                        if (order.latitude() != null && order.longitude() != null) {
-                            totalDist += haversine(currentLat, currentLon, order.latitude(), order.longitude());
-                            currentLat = order.latitude();
-                            currentLon = order.longitude();
+                    while (!remainingOrders.isEmpty()) {
+                        Order nearest = null;
+                        double minDistance = Double.MAX_VALUE;
+                        int nearestIndex = -1;
+
+                        for (int i = 0; i < remainingOrders.size(); i++) {
+                            Order o = remainingOrders.get(i);
+                            if (o.latitude() != null && o.longitude() != null) {
+                                double d = haversine(currentLat, currentLon, o.latitude(), o.longitude());
+                                if (d < minDistance) {
+                                    minDistance = d;
+                                    nearest = o;
+                                    nearestIndex = i;
+                                }
+                            }
+                        }
+
+                        if (nearest != null) {
+                            totalDist += minDistance;
+                            currentLat = nearest.latitude();
+                            currentLon = nearest.longitude();
+                            sortedOrders.add(remainingOrders.remove(nearestIndex));
+                        } else {
+                            // Break if remaining orders don't have coordinates
+                            break;
                         }
                     }
                     
                     // Return to warehouse
                     totalDist += haversine(currentLat, currentLon, START_LAT, START_LON);
                     
-                    return Math.round(totalDist * 100.0) / 100.0; // Round to 2 decimals
+                    return Math.round(totalDist * 100.0) / 100.0;
                 });
     }
 
@@ -145,5 +172,10 @@ public class RouteUseCasesImpl implements CreateRouteUseCase, UpdateRouteStatusU
     @Override
     public Flux<Route> getAllRoutes() {
         return routeRepository.findAll();
+    }
+
+    @Override
+    public Flux<Route> getRoutesByFilters(java.time.LocalDate date, RouteStatus status) {
+        return routeRepository.findByFilters(date, status);
     }
 }

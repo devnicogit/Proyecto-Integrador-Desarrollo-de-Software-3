@@ -44,7 +44,12 @@ public class RouteController {
     }
 
     @GetMapping
-    public Flux<Route> getAllRoutes() {
+    public Flux<Route> getAllRoutes(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate date,
+            @RequestParam(required = false) RouteStatus status) {
+        if (date != null || status != null) {
+            return getAllRoutesUseCase.getRoutesByFilters(date, status);
+        }
         return getAllRoutesUseCase.getAllRoutes();
     }
 }

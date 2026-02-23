@@ -114,3 +114,35 @@ export const DriverPerformanceChart: React.FC<DriverPerformanceProps> = ({ data 
 
   return <Bar data={chartData} options={options} />;
 };
+
+export const DistrictPerformanceChart: React.FC<{ data: Array<{ name: string; count: number }> }> = ({ data }) => {
+  const chartData = {
+    labels: data.map(d => d.name || 'Sin Distrito'),
+    datasets: [
+      {
+        label: 'Pedidos',
+        data: data.map(d => d.count),
+        backgroundColor: 'rgba(139, 92, 246, 0.6)',
+        borderColor: 'rgba(139, 92, 246, 1)',
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  const options = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+    },
+    scales: {
+      x: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    }
+  };
+
+  return <Bar data={chartData} options={options} />;
+};

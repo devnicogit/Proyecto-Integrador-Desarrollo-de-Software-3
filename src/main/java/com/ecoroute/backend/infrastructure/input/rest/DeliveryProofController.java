@@ -1,6 +1,7 @@
 package com.ecoroute.backend.infrastructure.input.rest;
 
 import com.ecoroute.backend.application.services.PdfService;
+import com.ecoroute.backend.domain.exception.ResourceNotFoundException;
 import com.lowagie.text.pdf.PdfWriter;
 import com.ecoroute.backend.domain.model.DeliveryProof;
 import com.ecoroute.backend.domain.ports.in.CreateDeliveryProofUseCase;
@@ -44,6 +45,7 @@ public class DeliveryProofController {
     @GetMapping("/{orderId}/pdf")
     public Mono<ResponseEntity<byte[]>> downloadPdf(@PathVariable Long orderId) {
         return orderRepository.findById(orderId)
+                .switchIfEmpty(Mono.error(new ResourceNotFoundException("Pedido no encontrado")))
                 .flatMap(order -> deliveryProofRepository.findByOrderId(orderId)
                         .map(proof -> {
                             byte[] pdfContent = pdfService.generateDeliveryReceipt(order, proof);
@@ -51,6 +53,7 @@ public class DeliveryProofController {
                                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=receipt_" + order.trackingNumber() + ".pdf")
                                     .contentType(MediaType.APPLICATION_PDF)
                                     .body(pdfContent);
-                        }));
+                        })
+                        .switchIfEmpty(Mono.error(new RuntimeException("Este pedido no tiene una evidencia de entrega registrada aún."))));
     }
 }

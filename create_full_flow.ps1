@@ -51,6 +51,8 @@ $orderBody = @{
     deliveryAddress = "Av. La Marina 2000"
     deliveryDistrict = "San Miguel"
     priority = 1
+    latitude = -12.078
+    longitude = -77.085
     estimatedDeliveryWindowStart = (Get-Date).AddHours(-1).ToString("yyyy-MM-ddTHH:mm:ssZ")
     estimatedDeliveryWindowEnd = (Get-Date).AddHours(2).ToString("yyyy-MM-ddTHH:mm:ssZ")
 } | ConvertTo-Json

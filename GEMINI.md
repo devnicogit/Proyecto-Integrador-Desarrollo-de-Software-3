@@ -301,10 +301,12 @@ Se completaron los módulos críticos del MVP:
 ... (se mantiene el contenido anterior) ...
 
 ## 4.8 Actualización de Funcionalidades Críticas (Febrero 2026)
-- **Motor de Tracking:** Implementación de historial GPS y dibujo de polilíneas en frontend.
-- **Módulo de Comprobantes:** Servicio de generación de PDF utilizando OpenPDF integrado con flujo de órdenes.
-- **Dashboard Dinámico:** Incorporación de Chart.js para visualización de KPIs de cumplimiento y productividad por conductor.
-- **Capa de Validación:** Refuerzo de DTOs con JSR-303 para asegurar integridad de datos en formatos peruanos.
+- **Motor de Tracking Avanzado:** Implementación de historial GPS, dibujo de polilíneas dinámicas y ordenamiento por proximidad geográfica.
+- **Módulo de Comprobantes:** Servicio de generación de PDF utilizando OpenPDF integrado con evidencias en S3.
+- **Dashboard de Escala:** Incorporación de Chart.js para visualización de KPIs de cumplimiento, productividad por conductor y demanda por distritos.
+- **Capa de Validación Perú:** Refuerzo de DTOs con JSR-303 para asegurar integridad en placas, teléfonos y licencias peruanas.
+- **UX Profesional:** Implementación de Layout Split-Pane, scroll independiente en tablas y paginación para alto volumen de datos.
+- **Esquema Consolidado:** Unificación de la arquitectura de datos integrando Hubs, Inventarios y Mantenimiento de Flota.
 El sistema **EcoRoute** utiliza una **Arquitectura Hexagonal (Puertos y Adaptadores)** para garantizar el desacoplamiento total entre la lógica de negocio y las tecnologías externas.
 - **Domain Layer:** Contiene las entidades (`Order`, `Driver`, `Vehicle`), excepciones de negocio y los *Output Ports* (interfaces de repositorios). Es el núcleo del sistema y no tiene dependencias de frameworks externos.
 - **Application Layer:** Implementa los *Input Ports* a través de Casos de Uso (`OrderUseCasesImpl`, `DriverUseCasesImpl`). Aquí se orquestan las reglas de negocio y se interactúa con los puertos de salida.

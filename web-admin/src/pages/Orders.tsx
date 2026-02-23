@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Loader2, Plus, X, Package, Trash2, MapPin, User, Phone, Mail, Calendar, Info, RefreshCw, AlertCircle, FileText } from 'lucide-react';
+import { Search, Loader2, Plus, X, Package, Trash2, MapPin, User, Phone, Mail, Calendar, Info, RefreshCw, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
 import { getAllOrders, createOrder, deleteOrder, updateOrderStatus } from '../services/orderService';
 import type { Order } from '../services/orderService';
 import { getAllRoutes } from '../services/routeService';
 import type { Route } from '../services/routeService';
 import api from '../services/api';
+import Pagination from '../components/Pagination';
 
 const Orders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -13,6 +14,10 @@ const Orders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   // Modals state
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -34,8 +39,43 @@ const Orders: React.FC = () => {
     deliveryAddress: '',
     deliveryCity: 'Lima',
     deliveryDistrict: '',
-    priority: 0
+    priority: 0,
+    latitude: -12.095,
+    longitude: -77.020
   });
+
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  const handleGeocode = async () => {
+    if (!formData.deliveryAddress || formData.deliveryAddress.length < 5) {
+      alert('Por favor ingrese una dirección más específica para localizar.');
+      return;
+    }
+
+    setIsGeocoding(true);
+    try {
+      // Usamos el servicio gratuito de Nominatim (OpenStreetMap)
+      const query = `${formData.deliveryAddress}, ${formData.deliveryDistrict || ''}, ${formData.deliveryCity}, Peru`;
+      const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setFormData({
+          ...formData,
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lon)
+        });
+        alert(`📍 Dirección localizada: ${data[0].display_name}`);
+      } else {
+        alert('No se encontraron coordenadas para esa dirección. Se usará la ubicación por defecto.');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -84,14 +124,18 @@ const Orders: React.FC = () => {
     try {
       await createOrder({
         ...formData,
-        routeId: formData.routeId ? parseInt(formData.routeId) : undefined
+        routeId: formData.routeId ? parseInt(formData.routeId) : undefined,
+        latitude: formData.latitude,
+        longitude: formData.longitude
       });
       setIsCreateModalOpen(false);
       setFormData({
         trackingNumber: '', externalReference: '', routeId: '',
         recipientName: '', recipientPhone: '', recipientEmail: '',
         deliveryAddress: '', deliveryCity: 'Lima', deliveryDistrict: '',
-        priority: 0
+        priority: 0,
+        latitude: -12.095,
+        longitude: -77.020
       });
       fetchData();
     } catch (error) {
@@ -130,12 +174,39 @@ const Orders: React.FC = () => {
     }
   };
 
+  const handleSimulateDelivery = async (orderId: number) => {
+    if (!window.confirm('¿Desea simular la entrega con evidencia digital para este pedido?')) return;
+    
+    try {
+      const deliveryBody = {
+        orderId: orderId,
+        imageUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKma1gAAAABJRU5ErkJggg==",
+        signatureDataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKma1gAAAABJRU5ErkJggg==",
+        receiverName: "Entrega desde Dashboard",
+        receiverDni: "00000000",
+        latitude: -12.095,
+        longitude: -77.020
+      };
+      
+      await api.post('/delivery-proofs', deliveryBody);
+      alert('¡Evidencia registrada con éxito! El pedido ahora es DELIVERED.');
+      fetchData();
+    } catch (error) {
+      alert('Error al registrar la evidencia.');
+    }
+  };
+
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           order.recipientName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Calculate paginated data
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentOrders = filteredOrders.slice(indexOfFirstItem, indexOfLastItem);
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -159,9 +230,9 @@ const Orders: React.FC = () => {
         <div style={{ display: 'flex', gap: '1rem' }}>
           <div style={{ position: 'relative' }}>
             <Search style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} size={18} />
-            <input type="text" placeholder="Buscar tracking..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ padding: '0.625rem 1rem 0.625rem 2.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', width: '250px', outline: 'none' }} />
+            <input type="text" placeholder="Buscar tracking..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }} style={{ padding: '0.625rem 1rem 0.625rem 2.5rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', width: '250px', outline: 'none' }} />
           </div>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ padding: '0.625rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', outline: 'none', backgroundColor: '#fff' }}>
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} style={{ padding: '0.625rem 1rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', outline: 'none', backgroundColor: '#fff' }}>
             <option value="ALL">Todos los Estados</option>
             <option value="PENDING">PENDING</option>
             <option value="ASSIGNED">ASSIGNED</option>
@@ -188,7 +259,7 @@ const Orders: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.map((order) => (
+            {currentOrders.map((order) => (
               <tr key={order.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '1rem 1.5rem', fontWeight: 600 }}>{order.trackingNumber}</td>
                 <td style={{ padding: '1rem 1.5rem' }}>{order.recipientName}</td>
@@ -209,6 +280,14 @@ const Orders: React.FC = () => {
             ))}
           </tbody>
         </table>
+
+        <Pagination 
+          currentPage={currentPage}
+          totalItems={filteredOrders.length}
+          itemsPerPage={itemsPerPage}
+          onPageChange={(page) => setCurrentPage(page)}
+        />
+
         {filteredOrders.length === 0 && (
           <div style={{ padding: '4rem', textAlign: 'center', color: '#94a3b8' }}>
             <Package size={48} style={{ opacity: 0.2, marginBottom: '1rem', marginLeft: 'auto', marginRight: 'auto' }} />
@@ -226,15 +305,7 @@ const Orders: React.FC = () => {
             <form onSubmit={handleCreateSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>N° Tracking</label>
-                <input 
-                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
-                  value={formData.trackingNumber} 
-                  onChange={e => setFormData({...formData, trackingNumber: e.target.value.toUpperCase()})} 
-                  placeholder="Ej: ECO-12345"
-                  minLength={5}
-                  maxLength={50}
-                  required 
-                />
+                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.trackingNumber} onChange={e => setFormData({...formData, trackingNumber: e.target.value.toUpperCase()})} placeholder="Ej: ECO-12345" minLength={5} maxLength={50} required />
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Vincular a Ruta</label>
@@ -245,46 +316,45 @@ const Orders: React.FC = () => {
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Nombre Cliente</label>
-                <input 
-                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
-                  value={formData.recipientName} 
-                  onChange={e => setFormData({...formData, recipientName: e.target.value})} 
-                  placeholder="Ej: Ana García"
-                  maxLength={255}
-                  required 
-                />
+                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.recipientName} onChange={e => setFormData({...formData, recipientName: e.target.value})} placeholder="Ej: Ana García" maxLength={255} required />
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Dirección</label>
-                <input 
-                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
-                  value={formData.deliveryAddress} 
-                  onChange={e => setFormData({...formData, deliveryAddress: e.target.value})} 
-                  placeholder="Ej: Calle Los Pinos 450"
-                  required 
-                />
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input 
+                    style={{ flex: 1, padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                    value={formData.deliveryAddress} 
+                    onChange={e => setFormData({...formData, deliveryAddress: e.target.value})} 
+                    placeholder="Ej: Calle Los Pinos 450" 
+                    required 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={handleGeocode}
+                    disabled={isGeocoding}
+                    style={{ 
+                      padding: '0.5rem', 
+                      backgroundColor: '#f1f5f9', 
+                      borderRadius: '0.25rem', 
+                      color: '#2563eb',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Obtener coordenadas GPS"
+                  >
+                    {isGeocoding ? <Loader2 className="animate-spin" size={16} /> : <MapPin size={16} />}
+                  </button>
+                </div>
+                <small style={{ fontSize: '0.6rem', color: '#94a3b8' }}>Coordenadas: {formData.latitude.toFixed(4)}, {formData.longitude.toFixed(4)}</small>
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Teléfono Cliente</label>
-                <input 
-                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
-                  value={formData.recipientPhone} 
-                  onChange={e => setFormData({...formData, recipientPhone: e.target.value})} 
-                  placeholder="Ej: 912345678"
-                  pattern="^9[0-9]{8}$"
-                  title="9 dígitos, empezar con 9"
-                  required 
-                />
+                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.recipientPhone} onChange={e => setFormData({...formData, recipientPhone: e.target.value})} placeholder="Ej: 912345678" pattern="^9[0-9]{8}$" title="9 dígitos, empezar con 9" required />
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Email Cliente</label>
-                <input 
-                  type="email"
-                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
-                  value={formData.recipientEmail} 
-                  onChange={e => setFormData({...formData, recipientEmail: e.target.value})} 
-                  placeholder="ejemplo@correo.com"
-                />
+                <input type="email" style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.recipientEmail} onChange={e => setFormData({...formData, recipientEmail: e.target.value})} placeholder="ejemplo@correo.com" />
               </div>
               <div style={{ gridColumn: 'span 2', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                 <button type="button" onClick={() => setIsCreateModalOpen(false)} style={{ padding: '0.6rem 1.25rem', borderRadius: '0.5rem', backgroundColor: '#f1f5f9' }}>Cancelar</button>
@@ -337,7 +407,29 @@ const Orders: React.FC = () => {
                   </button>
                 )}
 
-                <button onClick={() => setIsUpdatingStatus(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', border: '1px solid #2563eb', color: '#2563eb', borderRadius: '0.5rem', fontWeight: 600, backgroundColor: 'transparent' }}>
+                {selectedOrder.status !== 'DELIVERED' && (
+                  <button 
+                    onClick={() => handleSimulateDelivery(selectedOrder.id)}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '0.5rem', 
+                      padding: '0.75rem', 
+                      backgroundColor: '#3b82f6', 
+                      color: '#fff', 
+                      borderRadius: '0.5rem', 
+                      fontWeight: 700,
+                      border: 'none',
+                      cursor: 'pointer',
+                      marginTop: '1rem'
+                    }}
+                  >
+                    <CheckCircle2 size={18} /> Registrar Entrega (Simulación)
+                  </button>
+                )}
+
+                <button onClick={() => setIsUpdatingStatus(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', border: '1px solid #2563eb', color: '#2563eb', borderRadius: '0.5rem', fontWeight: 600, backgroundColor: 'transparent', marginTop: '0.5rem' }}>
                   <RefreshCw size={18} /> Forzar Cambio de Estado
                 </button>
               </div>

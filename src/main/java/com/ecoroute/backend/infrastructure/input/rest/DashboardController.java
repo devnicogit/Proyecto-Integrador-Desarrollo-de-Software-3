@@ -40,5 +40,10 @@ public class DashboardController {
         return dashboardService.getDeliveriesByDriver(driverId);
     }
 
+    @GetMapping("/orders-by-district")
+    public Flux<com.ecoroute.backend.infrastructure.output.persistence.DriverPerformanceDTO> getOrdersByDistrict() {
+        return dashboardService.getOrdersByDistrict();
+    }
+
     public record DeliveryPerformanceStats(Long onTime, Long delayed) {}
 }

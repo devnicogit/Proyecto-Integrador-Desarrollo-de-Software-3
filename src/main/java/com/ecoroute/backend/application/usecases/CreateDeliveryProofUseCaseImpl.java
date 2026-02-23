@@ -6,7 +6,9 @@ import com.ecoroute.backend.domain.exception.ResourceNotFoundException;
 import com.ecoroute.backend.domain.model.DeliveryProof;
 import com.ecoroute.backend.domain.model.Order;
 import com.ecoroute.backend.domain.model.OrderStatus;
+import com.ecoroute.backend.domain.model.RouteStatus;
 import com.ecoroute.backend.domain.ports.in.CreateDeliveryProofUseCase;
+import com.ecoroute.backend.domain.ports.in.UpdateRouteStatusUseCase;
 import com.ecoroute.backend.domain.ports.out.DeliveryProofRepository;
 import com.ecoroute.backend.domain.ports.out.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class CreateDeliveryProofUseCaseImpl implements CreateDeliveryProofUseCas
     private final OrderRepository orderRepository;
     private final NotificationService notificationService;
     private final S3Service s3Service;
+    private final UpdateRouteStatusUseCase updateRouteStatusUseCase;
 
     @Override
     @Transactional
@@ -83,9 +86,27 @@ public class CreateDeliveryProofUseCaseImpl implements CreateDeliveryProofUseCas
                                         .then(deliveryProofRepository.save(proofWithS3))
                                         .flatMap(savedProof ->
                                                 notificationService.sendDeliveryNotification(updatedOrder)
+                                                        .then(checkAndCompleteRoute(updatedOrder.routeId()))
                                                         .thenReturn(savedProof)
                                         );
                             });
+                });
+    }
+
+    private Mono<Void> checkAndCompleteRoute(Long routeId) {
+        if (routeId == null) return Mono.empty();
+
+        return orderRepository.findByRouteId(routeId)
+                .collectList()
+                .flatMap(orders -> {
+                    boolean allDelivered = orders.stream()
+                            .allMatch(o -> o.status() == OrderStatus.DELIVERED || o.status() == OrderStatus.FAILED);
+                    
+                    if (allDelivered && !orders.isEmpty()) {
+                        log.info("🏁 All orders delivered for route {}. Completing route.", routeId);
+                        return updateRouteStatusUseCase.updateRouteStatusOnly(routeId, RouteStatus.COMPLETED);
+                    }
+                    return Mono.empty();
                 });
     }
 }

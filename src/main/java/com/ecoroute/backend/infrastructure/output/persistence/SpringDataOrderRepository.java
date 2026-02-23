@@ -21,7 +21,10 @@ public interface SpringDataOrderRepository extends R2dbcRepository<OrderEntity, 
             @Query("SELECT COUNT(*) FROM delivery_proofs dp JOIN orders o ON dp.order_id = o.id WHERE dp.verified_at > o.estimated_delivery_window_end AND (:driverId IS NULL OR o.route_id IN (SELECT id FROM routes WHERE driver_id = :driverId))")
             Mono<Long> countDelayedDeliveriesFiltered(Long driverId);
         
-            @Query("SELECT d.first_name || ' ' || d.last_name as name, COUNT(o.id) as count FROM orders o JOIN routes r ON o.route_id = r.id JOIN drivers d ON r.driver_id = d.id WHERE o.status = 'DELIVERED' AND (:driverId IS NULL OR d.id = :driverId) GROUP BY d.first_name, d.last_name")
-            Flux<DriverPerformanceDTO> countDeliveriesByDriverFiltered(Long driverId);
-        }
-        
+                @Query("SELECT d.first_name || ' ' || d.last_name as name, COUNT(o.id) as count FROM orders o JOIN routes r ON o.route_id = r.id JOIN drivers d ON r.driver_id = d.id WHERE o.status = 'DELIVERED' AND (:driverId IS NULL OR d.id = :driverId) GROUP BY d.first_name, d.last_name")
+                Flux<DriverPerformanceDTO> countDeliveriesByDriverFiltered(Long driverId);
+            
+                @Query("SELECT delivery_district as name, COUNT(*) as count FROM orders GROUP BY delivery_district")
+                Flux<DriverPerformanceDTO> countOrdersByDistrict();
+            }
+            
