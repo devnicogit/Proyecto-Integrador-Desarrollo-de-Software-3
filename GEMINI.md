@@ -282,21 +282,29 @@ El proyecto EcoRoute inició formalmente el 20 de agosto de 2025 con una reunió
 ## 3.4 Fase Transición y Cierre
 
 ### 3.4.1 Lecciones aprendidas / retrospectivas
-- **Técnicas:** La curva de aprendizaje de WebFlux fue inicialmente alta, pero necesaria para la escala del GPS.
-- **Gestión:** La comunicación directa con los conductores en las pruebas de campo fue crucial para ajustar la usabilidad de la App móvil.
+- **Técnicas:** La curva de aprendizaje de WebFlux fue inicialmente alta, pero necesaria para la escala del GPS. El manejo de tipos binarios para PDFs en entornos reactivos requirió optimización de memoria.
+- **Gestión:** La simulación de datos GPS fue clave para validar el algoritmo de Haversine antes del despliegue en campo.
 
 ### 3.4.2 Conformidad de los entregables
 Se completaron los módulos críticos del MVP:
 - Backend reactivo desplegado en contenedor Docker.
-- App móvil funcional en Android para conductores.
-- Panel administrativo Web para gestión de pedidos.
-- Documentación técnica (Swagger) y manual de usuario entregados.
+- App móvil funcional (Lógica de GPS y Evidencias integrada).
+- Panel administrativo Web con KPIs y filtros avanzados.
+- Generación de comprobantes PDF y almacenamiento S3 operativo.
+- Validaciones adaptadas al mercado peruano (Placas, Teléfonos, Licencias).
 
 ---
 
 # 💻 CAPÍTULO IV: PROGRAMACIÓN
 
 ## 4.1 Implementación de la Arquitectura de Software
+... (se mantiene el contenido anterior) ...
+
+## 4.8 Actualización de Funcionalidades Críticas (Febrero 2026)
+- **Motor de Tracking:** Implementación de historial GPS y dibujo de polilíneas en frontend.
+- **Módulo de Comprobantes:** Servicio de generación de PDF utilizando OpenPDF integrado con flujo de órdenes.
+- **Dashboard Dinámico:** Incorporación de Chart.js para visualización de KPIs de cumplimiento y productividad por conductor.
+- **Capa de Validación:** Refuerzo de DTOs con JSR-303 para asegurar integridad de datos en formatos peruanos.
 El sistema **EcoRoute** utiliza una **Arquitectura Hexagonal (Puertos y Adaptadores)** para garantizar el desacoplamiento total entre la lógica de negocio y las tecnologías externas.
 - **Domain Layer:** Contiene las entidades (`Order`, `Driver`, `Vehicle`), excepciones de negocio y los *Output Ports* (interfaces de repositorios). Es el núcleo del sistema y no tiene dependencias de frameworks externos.
 - **Application Layer:** Implementa los *Input Ports* a través de Casos de Uso (`OrderUseCasesImpl`, `DriverUseCasesImpl`). Aquí se orquestan las reglas de negocio y se interactúa con los puertos de salida.

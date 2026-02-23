@@ -187,23 +187,61 @@ const Drivers: React.FC = () => {
             <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Nombre</label>
-                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.firstName} onChange={e => setFormData({...formData, firstName: e.target.value})} required />
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.firstName} 
+                  onChange={e => setFormData({...formData, firstName: e.target.value})} 
+                  placeholder="Ej: Juan"
+                  maxLength={50}
+                  required 
+                />
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Apellido</label>
-                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.lastName} onChange={e => setFormData({...formData, lastName: e.target.value})} required />
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.lastName} 
+                  onChange={e => setFormData({...formData, lastName: e.target.value})} 
+                  placeholder="Ej: Pérez"
+                  maxLength={50}
+                  required 
+                />
               </div>
               <div style={{ gridColumn: 'span 2' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>N° Licencia</label>
-                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.licenseNumber} onChange={e => setFormData({...formData, licenseNumber: e.target.value})} required />
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.licenseNumber} 
+                  onChange={e => setFormData({...formData, licenseNumber: e.target.value.toUpperCase()})} 
+                  placeholder="Ej: Q12345678"
+                  pattern="^[A-Z][0-9]{8}$"
+                  title="Formato: Una letra mayúscula seguida de 8 números"
+                  required 
+                />
+                <small style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Formato: Letra + 8 dígitos</small>
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Teléfono</label>
-                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.phoneNumber} onChange={e => setFormData({...formData, phoneNumber: e.target.value})} />
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.phoneNumber} 
+                  onChange={e => setFormData({...formData, phoneNumber: e.target.value})} 
+                  placeholder="Ej: 987654321"
+                  pattern="^9[0-9]{8}$"
+                  title="Debe empezar con 9 y tener 9 dígitos"
+                  required
+                />
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Email</label>
-                <input type="email" style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                <input 
+                  type="email" 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.email} 
+                  onChange={e => setFormData({...formData, email: e.target.value})} 
+                  placeholder="ejemplo@correo.com"
+                  maxLength={100}
+                />
               </div>
               <div style={{ gridColumn: 'span 2' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

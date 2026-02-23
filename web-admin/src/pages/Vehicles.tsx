@@ -189,15 +189,38 @@ const Vehicles: React.FC = () => {
             <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div style={{ gridColumn: 'span 2' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>N° Placa</label>
-                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.plateNumber} onChange={e => setFormData({...formData, plateNumber: e.target.value})} required />
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.plateNumber} 
+                  onChange={e => setFormData({...formData, plateNumber: e.target.value.toUpperCase()})} 
+                  placeholder="Ej: ABC-123"
+                  pattern="^[A-Z0-9]{3}-[A-Z0-9]{3}$"
+                  title="Formato: 3 caracteres, guion, 3 caracteres (Ej: ABC-123)"
+                  required 
+                />
+                <small style={{ fontSize: '0.65rem', color: '#94a3b8' }}>Formato estándar: ABC-123</small>
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Marca</label>
-                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} required />
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.brand} 
+                  onChange={e => setFormData({...formData, brand: e.target.value})} 
+                  placeholder="Ej: Toyota"
+                  maxLength={50}
+                  required 
+                />
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Modelo</label>
-                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} required />
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.model} 
+                  onChange={e => setFormData({...formData, model: e.target.value})} 
+                  placeholder="Ej: Hilux"
+                  maxLength={50}
+                  required 
+                />
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Capacidad (Kg)</label>

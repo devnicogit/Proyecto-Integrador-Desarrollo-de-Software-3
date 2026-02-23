@@ -6,6 +6,7 @@ import com.ecoroute.backend.domain.ports.in.GetAllOrdersUseCase;
 import com.ecoroute.backend.domain.ports.in.GetOrderByIdUseCase;
 import com.ecoroute.backend.domain.ports.in.UpdateOrderStatusUseCase;
 import com.ecoroute.backend.domain.ports.out.OrderRepository;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -23,7 +24,7 @@ public class OrderController {
     private final OrderRepository orderRepository;
 
     @PostMapping
-    public Mono<Order> createOrder(@RequestBody CreateOrderRequest request) {
+    public Mono<Order> createOrder(@Valid @RequestBody CreateOrderRequest request) {
         Order order = OrderRestMapper.toDomain(request);
         return createOrderUseCase.createOrder(order);
     }

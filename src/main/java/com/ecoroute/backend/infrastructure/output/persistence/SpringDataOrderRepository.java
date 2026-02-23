@@ -12,6 +12,16 @@ public interface SpringDataOrderRepository extends R2dbcRepository<OrderEntity, 
     Mono<OrderEntity> findByTrackingNumber(String trackingNumber);
     Flux<OrderEntity> findByRouteId(Long routeId);
 
-    @Query("SELECT status, COUNT(*) as count FROM orders GROUP BY status")
-    Flux<OrderStatusCount> countOrdersByStatus();
-}
+            @Query("SELECT status, COUNT(*) as count FROM orders WHERE (:driverId IS NULL OR route_id IN (SELECT id FROM routes WHERE driver_id = :driverId)) AND (CAST(:startDate AS TIMESTAMP) IS NULL OR created_at >= :startDate) AND (CAST(:endDate AS TIMESTAMP) IS NULL OR created_at <= :endDate) GROUP BY status")
+            Flux<OrderStatusCount> countOrdersByStatusFiltered(Long driverId, java.time.OffsetDateTime startDate, java.time.OffsetDateTime endDate);
+        
+            @Query("SELECT COUNT(*) FROM delivery_proofs dp JOIN orders o ON dp.order_id = o.id WHERE dp.verified_at <= o.estimated_delivery_window_end AND (:driverId IS NULL OR o.route_id IN (SELECT id FROM routes WHERE driver_id = :driverId))")
+            Mono<Long> countOnTimeDeliveriesFiltered(Long driverId);
+        
+            @Query("SELECT COUNT(*) FROM delivery_proofs dp JOIN orders o ON dp.order_id = o.id WHERE dp.verified_at > o.estimated_delivery_window_end AND (:driverId IS NULL OR o.route_id IN (SELECT id FROM routes WHERE driver_id = :driverId))")
+            Mono<Long> countDelayedDeliveriesFiltered(Long driverId);
+        
+            @Query("SELECT d.first_name || ' ' || d.last_name as name, COUNT(o.id) as count FROM orders o JOIN routes r ON o.route_id = r.id JOIN drivers d ON r.driver_id = d.id WHERE o.status = 'DELIVERED' AND (:driverId IS NULL OR d.id = :driverId) GROUP BY d.first_name, d.last_name")
+            Flux<DriverPerformanceDTO> countDeliveriesByDriverFiltered(Long driverId);
+        }
+        

@@ -2,6 +2,7 @@ package com.ecoroute.backend.infrastructure.input.rest;
 
 import com.ecoroute.backend.domain.model.Vehicle;
 import com.ecoroute.backend.domain.ports.in.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -21,7 +22,7 @@ public class VehicleController {
     private final DeleteVehicleUseCase deleteVehicleUseCase;
 
     @PostMapping
-    public Mono<Vehicle> createVehicle(@RequestBody VehicleRequest request) {
+    public Mono<Vehicle> createVehicle(@Valid @RequestBody VehicleRequest request) {
         Vehicle vehicle = new Vehicle(
                 null,
                 request.plateNumber(),
@@ -46,7 +47,7 @@ public class VehicleController {
     }
 
     @PutMapping("/{id}")
-    public Mono<Vehicle> updateVehicle(@PathVariable Long id, @RequestBody VehicleRequest request) {
+    public Mono<Vehicle> updateVehicle(@PathVariable Long id, @Valid @RequestBody VehicleRequest request) {
         Vehicle vehicle = new Vehicle(
                 id,
                 request.plateNumber(),

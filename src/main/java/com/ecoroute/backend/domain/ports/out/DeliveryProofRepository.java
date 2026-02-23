@@ -5,4 +5,5 @@ import reactor.core.publisher.Mono;
 
 public interface DeliveryProofRepository {
     Mono<DeliveryProof> save(DeliveryProof deliveryProof);
+    Mono<DeliveryProof> findByOrderId(Long orderId);
 }

@@ -6,6 +6,8 @@ import { getAllDrivers } from '../services/driverService';
 import type { Driver } from '../services/driverService';
 import { getAllVehicles } from '../services/vehicleService';
 import type { Vehicle } from '../services/vehicleService';
+import { getVehicleHistory } from '../services/gpsService';
+import type { VehicleGpsHistory } from '../services/gpsService';
 import TrackingMap from '../components/TrackingMap';
 
 // Custom Searchable Select Component
@@ -132,6 +134,7 @@ const RoutesPage: React.FC = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRoute, setSelectedRoute] = useState<RouteModel | null>(null);
+  const [gpsHistory, setGpsHistory] = useState<VehicleGpsHistory[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Form State
@@ -171,9 +174,31 @@ const RoutesPage: React.FC = () => {
     }
   };
 
+  const fetchGpsHistory = async (vehicleId: number) => {
+    try {
+      const history = await getVehicleHistory(vehicleId);
+      setGpsHistory(history);
+    } catch (error) {
+      console.error('Error fetching GPS history:', error);
+    }
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (selectedRoute) {
+      fetchGpsHistory(selectedRoute.vehicleId);
+      
+      // Auto-refresh GPS history if route is in progress
+      let interval: any;
+      if (selectedRoute.status === 'IN_PROGRESS') {
+        interval = setInterval(() => fetchGpsHistory(selectedRoute.vehicleId), 5000);
+      }
+      return () => clearInterval(interval);
+    }
+  }, [selectedRoute]);
 
   const handleStartRoute = async () => {
     if (!selectedRoute) return;
@@ -306,7 +331,19 @@ const RoutesPage: React.FC = () => {
                    </span>
                 </div>
               </div>
-              <TrackingMap zoom={14} markers={[{ id: 'truck', position: [-12.095, -77.020], title: "En Ruta", subtitle: "Conductor activo" }]} />
+              <TrackingMap 
+                zoom={14} 
+                center={gpsHistory.length > 0 ? [gpsHistory[0].latitude, gpsHistory[0].longitude] : undefined}
+                path={gpsHistory.map(p => [p.latitude, p.longitude] as [number, number]).reverse()}
+                markers={gpsHistory.length > 0 ? [
+                  { 
+                    id: 'truck', 
+                    position: [gpsHistory[0].latitude, gpsHistory[0].longitude], 
+                    title: "En Ruta", 
+                    subtitle: `Velocidad: ${gpsHistory[0].speedKmh} km/h` 
+                  }
+                ] : []} 
+              />
             </div>
           ) : (
             <div className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', color: '#94a3b8' }}>

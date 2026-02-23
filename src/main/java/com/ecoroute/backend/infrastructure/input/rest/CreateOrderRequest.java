@@ -3,17 +3,34 @@ package com.ecoroute.backend.infrastructure.input.rest;
 import com.ecoroute.backend.domain.model.OrderStatus;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.*;
 import java.time.OffsetDateTime;
 
 public record CreateOrderRequest(
+    @NotBlank(message = "El número de tracking es obligatorio")
+    @Size(min = 5, max = 50)
     String trackingNumber,
+
+    @Size(max = 100)
     String externalReference,
+
     Long routeId,
     OrderStatus status,
+
+    @NotBlank(message = "El nombre del cliente es obligatorio")
+    @Size(max = 255)
     String recipientName,
+
+    @NotBlank(message = "El teléfono es obligatorio")
+    @Pattern(regexp = "^9[0-9]{8}$", message = "El teléfono debe empezar con 9 y tener 9 dígitos")
     String recipientPhone,
+
+    @Email(message = "Formato de email inválido")
     String recipientEmail,
+
+    @NotBlank(message = "La dirección es obligatoria")
     String deliveryAddress,
+
     String deliveryCity,
     String deliveryDistrict,
     Double latitude,

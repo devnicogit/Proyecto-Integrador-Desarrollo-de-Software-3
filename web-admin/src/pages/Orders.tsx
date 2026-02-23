@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Loader2, Plus, X, Package, Trash2, MapPin, User, Phone, Mail, Calendar, Info, RefreshCw, AlertCircle } from 'lucide-react';
+import { Search, Loader2, Plus, X, Package, Trash2, MapPin, User, Phone, Mail, Calendar, Info, RefreshCw, AlertCircle, FileText } from 'lucide-react';
 import { getAllOrders, createOrder, deleteOrder, updateOrderStatus } from '../services/orderService';
 import type { Order } from '../services/orderService';
 import { getAllRoutes } from '../services/routeService';
 import type { Route } from '../services/routeService';
+import api from '../services/api';
 
 const Orders: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -112,6 +113,23 @@ const Orders: React.FC = () => {
     }
   };
 
+  const handleDownloadPdf = async (orderId: number, trackingNumber: string) => {
+    try {
+      const response = await api.get(`/delivery-proofs/${orderId}/pdf`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `comprobante_${trackingNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error) {
+      alert('No se pudo descargar el PDF. Asegúrese de que el pedido tenga una evidencia registrada.');
+    }
+  };
+
   const filteredOrders = orders.filter(order => {
     const matchesSearch = order.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           order.recipientName.toLowerCase().includes(searchTerm.toLowerCase());
@@ -208,7 +226,15 @@ const Orders: React.FC = () => {
             <form onSubmit={handleCreateSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>N° Tracking</label>
-                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.trackingNumber} onChange={e => setFormData({...formData, trackingNumber: e.target.value})} required />
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.trackingNumber} 
+                  onChange={e => setFormData({...formData, trackingNumber: e.target.value.toUpperCase()})} 
+                  placeholder="Ej: ECO-12345"
+                  minLength={5}
+                  maxLength={50}
+                  required 
+                />
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Vincular a Ruta</label>
@@ -219,11 +245,46 @@ const Orders: React.FC = () => {
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Nombre Cliente</label>
-                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.recipientName} onChange={e => setFormData({...formData, recipientName: e.target.value})} required />
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.recipientName} 
+                  onChange={e => setFormData({...formData, recipientName: e.target.value})} 
+                  placeholder="Ej: Ana García"
+                  maxLength={255}
+                  required 
+                />
               </div>
               <div style={{ gridColumn: 'span 1' }}>
                 <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Dirección</label>
-                <input style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} value={formData.deliveryAddress} onChange={e => setFormData({...formData, deliveryAddress: e.target.value})} required />
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.deliveryAddress} 
+                  onChange={e => setFormData({...formData, deliveryAddress: e.target.value})} 
+                  placeholder="Ej: Calle Los Pinos 450"
+                  required 
+                />
+              </div>
+              <div style={{ gridColumn: 'span 1' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Teléfono Cliente</label>
+                <input 
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.recipientPhone} 
+                  onChange={e => setFormData({...formData, recipientPhone: e.target.value})} 
+                  placeholder="Ej: 912345678"
+                  pattern="^9[0-9]{8}$"
+                  title="9 dígitos, empezar con 9"
+                  required 
+                />
+              </div>
+              <div style={{ gridColumn: 'span 1' }}>
+                <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Email Cliente</label>
+                <input 
+                  type="email"
+                  style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} 
+                  value={formData.recipientEmail} 
+                  onChange={e => setFormData({...formData, recipientEmail: e.target.value})} 
+                  placeholder="ejemplo@correo.com"
+                />
               </div>
               <div style={{ gridColumn: 'span 2', marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                 <button type="button" onClick={() => setIsCreateModalOpen(false)} style={{ padding: '0.6rem 1.25rem', borderRadius: '0.5rem', backgroundColor: '#f1f5f9' }}>Cancelar</button>
@@ -253,6 +314,29 @@ const Orders: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}><MapPin size={16} /> {selectedOrder.deliveryAddress}, {selectedOrder.deliveryDistrict}</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}><Calendar size={16} /> Creado: {new Date(selectedOrder.createdAt).toLocaleDateString()}</div>
                 </div>
+
+                {selectedOrder.status === 'DELIVERED' && (
+                  <button 
+                    onClick={() => handleDownloadPdf(selectedOrder.id, selectedOrder.trackingNumber)}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '0.5rem', 
+                      padding: '0.75rem', 
+                      backgroundColor: '#10b981', 
+                      color: '#fff', 
+                      borderRadius: '0.5rem', 
+                      fontWeight: 700,
+                      border: 'none',
+                      cursor: 'pointer',
+                      marginTop: '1rem'
+                    }}
+                  >
+                    <FileText size={18} /> Descargar Comprobante PDF
+                  </button>
+                )}
+
                 <button onClick={() => setIsUpdatingStatus(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', border: '1px solid #2563eb', color: '#2563eb', borderRadius: '0.5rem', fontWeight: 600, backgroundColor: 'transparent' }}>
                   <RefreshCw size={18} /> Forzar Cambio de Estado
                 </button>

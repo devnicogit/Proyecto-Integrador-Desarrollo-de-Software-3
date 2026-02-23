@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { ShoppingBag, Truck, CheckCircle2, AlertCircle, Loader2, User } from 'lucide-react';
-import { getDashboardStats, getFleetSummary } from '../services/dashboardService';
-import type { OrderStatusCount, FleetSummary } from '../services/dashboardService';
+import { ShoppingBag, Truck, CheckCircle2, AlertCircle, Loader2, User, Filter, X } from 'lucide-react';
+import { getDashboardStats, getFleetSummary, getDeliveryPerformance, getDeliveriesByDriver } from '../services/dashboardService';
+import type { OrderStatusCount, FleetSummary, DeliveryPerformanceStats, DriverPerformance } from '../services/dashboardService';
+import { getAllDrivers } from '../services/driverService';
+import type { Driver } from '../services/driverService';
+import { DeliveryPerformanceChart, DriverPerformanceChart } from '../components/Charts';
 
 const StatCard: React.FC<{
   title: string;
@@ -29,25 +32,46 @@ const StatCard: React.FC<{
 const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<OrderStatusCount[]>([]);
   const [fleet, setFleet] = useState<FleetSummary>({ availableDrivers: 0, totalActiveDrivers: 0, availableVehicles: 0, totalActiveVehicles: 0, maintenanceVehicles: 0 });
+  const [performance, setPerformance] = useState<DeliveryPerformanceStats>({ onTime: 0, delayed: 0 });
+  const [driverPerformance, setDriverPerformance] = useState<DriverPerformance[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    driverId: '',
+    startDate: '',
+    endDate: ''
+  });
+
+  const fetchData = async () => {
+    try {
+      const [statsData, fleetData, perfData, driversData, driverPerfData] = await Promise.all([
+        getDashboardStats(filters.driverId || undefined, filters.startDate, filters.endDate),
+        getFleetSummary(),
+        getDeliveryPerformance(filters.driverId || undefined),
+        getAllDrivers(),
+        getDeliveriesByDriver(filters.driverId || undefined)
+      ]);
+      setStats(statsData);
+      setFleet(fleetData);
+      setPerformance(perfData);
+      setDrivers(driversData);
+      setDriverPerformance(driverPerfData);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [statsData, fleetData] = await Promise.all([
-          getDashboardStats(),
-          getFleetSummary()
-        ]);
-        setStats(statsData);
-        setFleet(fleetData);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
-  }, []);
+  }, [filters]);
+
+  const clearFilters = () => {
+    setFilters({ driverId: '', startDate: '', endDate: '' });
+  };
 
   const getCount = (status: string) => {
     return stats.find(s => s.status === status)?.count || 0;
@@ -69,6 +93,57 @@ const Dashboard: React.FC = () => {
         <h2 className="header-title" style={{ margin: 0 }}>Panel de Control Logístico</h2>
         <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Actualizado hoy a las {new Date().toLocaleTimeString()}</span>
       </div>
+
+      {/* Filter Bar */}
+      <div className="card" style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#f8fafc' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b' }}>
+            <Filter size={18} />
+            <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Filtros:</span>
+          </div>
+          
+          <div style={{ flex: 1, minWidth: '200px' }}>
+            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.3rem', color: '#94a3b8', textTransform: 'uppercase' }}>Conductor</label>
+            <select 
+              value={filters.driverId} 
+              onChange={e => setFilters({...filters, driverId: e.target.value})}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.875rem' }}
+            >
+              <option value="">Todos los conductores</option>
+              {drivers.map(d => (
+                <option key={d.id} value={d.id}>{d.firstName} {d.lastName}</option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ flex: 1, minWidth: '150px' }}>
+            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.3rem', color: '#94a3b8', textTransform: 'uppercase' }}>Desde</label>
+            <input 
+              type="date" 
+              value={filters.startDate}
+              onChange={e => setFilters({...filters, startDate: e.target.value})}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.875rem' }}
+            />
+          </div>
+
+          <div style={{ flex: 1, minWidth: '150px' }}>
+            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: 700, marginBottom: '0.3rem', color: '#94a3b8', textTransform: 'uppercase' }}>Hasta</label>
+            <input 
+              type="date" 
+              value={filters.endDate}
+              onChange={e => setFilters({...filters, endDate: e.target.value})}
+              style={{ width: '100%', padding: '0.5rem', borderRadius: '0.375rem', border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.875rem' }}
+            />
+          </div>
+
+          <button 
+            onClick={clearFilters}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', borderRadius: '0.375rem', backgroundColor: '#f1f5f9', color: '#64748b', fontSize: '0.875rem', fontWeight: 600, border: 'none', cursor: 'pointer' }}
+          >
+            <X size={16} /> Limpiar
+          </button>
+        </div>
+      </div>
       
       <div style={{
         display: 'grid',
@@ -84,36 +159,42 @@ const Dashboard: React.FC = () => {
 
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '2fr 1fr',
-        gap: '1.5rem'
+        gridTemplateColumns: '1fr 1fr',
+        gap: '1.5rem',
+        marginBottom: '2rem'
       }}>
-        <div className="card" style={{ minHeight: '350px' }}>
-          <h3 style={{ fontSize: '1.125rem', marginBottom: '1.5rem', fontWeight: 600 }}>Distribución de Estados</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {stats.map((s) => (
-              <div key={s.status} style={{ width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-                  <span style={{ fontWeight: 500 }}>{s.status}</span>
-                  <span style={{ color: '#64748b' }}>{s.count} pedidos ({totalOrders > 0 ? ((s.count / totalOrders) * 100).toFixed(1) : 0}%)</span>
-                </div>
-                <div style={{ height: '8px', width: '100%', backgroundColor: '#f1f5f9', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ 
-                    height: '100%', 
-                    width: `${totalOrders > 0 ? (s.count / totalOrders) * 100 : 0}%`, 
-                    backgroundColor: s.status === 'DELIVERED' ? '#22c55e' : s.status === 'IN_TRANSIT' ? '#f59e0b' : '#3b82f6',
-                    borderRadius: '4px'
-                  }}></div>
-                </div>
-              </div>
-            ))}
-            {stats.length === 0 && (
-              <div style={{ textAlign: 'center', color: '#94a3b8', marginTop: '4rem' }}>
-                <ShoppingBag size={48} style={{ opacity: 0.2, marginBottom: '1rem', marginLeft: 'auto', marginRight: 'auto' }} />
-                <p>No hay pedidos registrados para mostrar estadísticas.</p>
-              </div>
+        <div className="card" style={{ minHeight: '400px' }}>
+          <h3 style={{ fontSize: '1.125rem', marginBottom: '1.5rem', fontWeight: 600 }}>Rendimiento de Entregas (A Tiempo vs Retraso)</h3>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+            {performance.onTime + performance.delayed > 0 ? (
+               <div style={{ width: '300px' }}><DeliveryPerformanceChart onTime={performance.onTime} delayed={performance.delayed} /></div>
+            ) : (
+               <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+                 <p>No hay datos de entregas finalizadas aún.</p>
+               </div>
             )}
           </div>
         </div>
+
+        <div className="card" style={{ minHeight: '400px' }}>
+          <h3 style={{ fontSize: '1.125rem', marginBottom: '1.5rem', fontWeight: 600 }}>Entregas por Conductor</h3>
+          <div style={{ height: '300px' }}>
+            {driverPerformance.length > 0 ? (
+               <DriverPerformanceChart data={driverPerformance} />
+            ) : (
+               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#94a3b8' }}>
+                 <p>No hay entregas registradas para conductores.</p>
+               </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '2fr 1fr',
+        gap: '1.5rem'
+      }}>
 
         <div className="card">
           <h3 style={{ fontSize: '1.125rem', marginBottom: '1.5rem', fontWeight: 600 }}>Disponibilidad de Flota</h3>

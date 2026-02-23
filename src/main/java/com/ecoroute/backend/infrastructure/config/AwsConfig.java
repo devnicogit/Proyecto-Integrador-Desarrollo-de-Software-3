@@ -31,6 +31,7 @@ public class AwsConfig {
         return S3AsyncClient.builder()
                 .region(Region.of(region))
                 .endpointOverride(URI.create(endpoint))
+                .forcePathStyle(true)
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKeyId, secretAccessKey)))
                 .build();

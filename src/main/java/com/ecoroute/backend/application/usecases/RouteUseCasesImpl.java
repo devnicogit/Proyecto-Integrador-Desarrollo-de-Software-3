@@ -46,27 +46,74 @@ public class RouteUseCasesImpl implements CreateRouteUseCase, UpdateRouteStatusU
         return routeRepository.findById(id)
                 .switchIfEmpty(Mono.error(new ResourceNotFoundException("Route not found")))
                 .flatMap(existingRoute -> {
-                    Route updatedRoute = createUpdatedRouteObject(existingRoute, status);
+                    // Calculate distance if starting route
+                    Mono<Double> distanceMono = (status == RouteStatus.IN_PROGRESS) 
+                            ? calculateRouteDistance(id) 
+                            : Mono.just(existingRoute.totalDistanceKm());
 
-                    // CASCADE: Update all orders to IN_TRANSIT if route starts
-                    if (status == RouteStatus.IN_PROGRESS) {
-                        return orderRepository.findByRouteId(id)
-                                .flatMap(order -> updateOrderStatus(order, OrderStatus.IN_TRANSIT))
-                                .then(routeRepository.save(updatedRoute));
+                    return distanceMono.flatMap(distance -> {
+                        Route updatedRoute = createUpdatedRouteObject(existingRoute, status, distance);
+
+                        // CASCADE: Update all orders to IN_TRANSIT if route starts
+                        if (status == RouteStatus.IN_PROGRESS) {
+                            return orderRepository.findByRouteId(id)
+                                    .flatMap(order -> updateOrderStatus(order, OrderStatus.IN_TRANSIT))
+                                    .then(routeRepository.save(updatedRoute));
+                        }
+                        
+                        return routeRepository.save(updatedRoute);
+                    });
+                });
+    }
+
+    private Mono<Double> calculateRouteDistance(Long routeId) {
+        // Warehouse location (Lima Main Square approx)
+        final double START_LAT = -12.046374;
+        final double START_LON = -77.042793;
+
+        return orderRepository.findByRouteId(routeId)
+                .collectList()
+                .map(orders -> {
+                    if (orders.isEmpty()) return 0.0;
+                    
+                    double totalDist = 0.0;
+                    double currentLat = START_LAT;
+                    double currentLon = START_LON;
+
+                    for (Order order : orders) {
+                        if (order.latitude() != null && order.longitude() != null) {
+                            totalDist += haversine(currentLat, currentLon, order.latitude(), order.longitude());
+                            currentLat = order.latitude();
+                            currentLon = order.longitude();
+                        }
                     }
                     
-                    return routeRepository.save(updatedRoute);
+                    // Return to warehouse
+                    totalDist += haversine(currentLat, currentLon, START_LAT, START_LON);
+                    
+                    return Math.round(totalDist * 100.0) / 100.0; // Round to 2 decimals
                 });
+    }
+
+    private double haversine(double lat1, double lon1, double lat2, double lon2) {
+        final int R = 6371; // Radius of the earth in km
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
     }
 
     @Override
     public Mono<Void> updateRouteStatusOnly(Long id, RouteStatus status) {
         return routeRepository.findById(id)
-                .flatMap(existingRoute -> routeRepository.save(createUpdatedRouteObject(existingRoute, status)))
+                .flatMap(existingRoute -> routeRepository.save(createUpdatedRouteObject(existingRoute, status, existingRoute.totalDistanceKm())))
                 .then();
     }
 
-    private Route createUpdatedRouteObject(Route existing, RouteStatus newStatus) {
+    private Route createUpdatedRouteObject(Route existing, RouteStatus newStatus, Double distance) {
         OffsetDateTime actualStartTime = existing.actualStartTime();
         OffsetDateTime actualEndTime = existing.actualEndTime();
         
@@ -76,7 +123,7 @@ public class RouteUseCasesImpl implements CreateRouteUseCase, UpdateRouteStatusU
         return new Route(
                 existing.id(), existing.driverId(), existing.vehicleId(),
                 existing.routeDate(), newStatus, existing.estimatedStartTime(),
-                actualStartTime, actualEndTime, existing.totalDistanceKm(),
+                actualStartTime, actualEndTime, distance,
                 existing.createdAt()
         );
     }

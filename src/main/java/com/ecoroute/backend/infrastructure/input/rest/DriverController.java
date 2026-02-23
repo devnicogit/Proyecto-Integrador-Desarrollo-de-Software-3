@@ -2,6 +2,7 @@ package com.ecoroute.backend.infrastructure.input.rest;
 
 import com.ecoroute.backend.domain.model.Driver;
 import com.ecoroute.backend.domain.ports.in.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -22,7 +23,7 @@ public class DriverController {
     private final DeleteDriverUseCase deleteDriverUseCase;
 
     @PostMapping
-    public Mono<Driver> createDriver(@RequestBody DriverRequest request) {
+    public Mono<Driver> createDriver(@Valid @RequestBody DriverRequest request) {
         Driver driver = new Driver(
                 null,
                 UUID.randomUUID().toString(),
@@ -49,7 +50,7 @@ public class DriverController {
     }
 
     @PutMapping("/{id}")
-    public Mono<Driver> updateDriver(@PathVariable Long id, @RequestBody DriverRequest request) {
+    public Mono<Driver> updateDriver(@PathVariable Long id, @Valid @RequestBody DriverRequest request) {
         Driver driver = new Driver(
                 id,
                 null,
