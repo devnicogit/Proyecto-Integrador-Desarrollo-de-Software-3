@@ -1,7 +1,12 @@
 spring:
+  main:
+    allow-bean-definition-overriding: true
   config:
     activate:
       on-profile: docker
+  
+  codec:
+    max-in-memory-size: 10MB
   
   r2dbc:
     url: r2dbc:postgresql://postgres:5432/${DB_NAME:ecoroute}
@@ -18,7 +23,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://keycloak:8080/realms/ecoroute
+          issuer-uri: http://192.168.1.5:8080/realms/ecoroute
           jwk-set-uri: http://keycloak:8080/realms/ecoroute/protocol/openid-connect/certs
 
 aws:
@@ -31,4 +36,6 @@ server:
 
 logging:
   level:
-    com.ecoroute.backend: INFO
+    com.ecoroute.backend: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG

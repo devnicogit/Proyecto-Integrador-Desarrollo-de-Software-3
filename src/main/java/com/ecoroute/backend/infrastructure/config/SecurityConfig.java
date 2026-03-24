@@ -28,10 +28,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.beans.factory.annotation.Value;
+
 @Configuration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
 public class SecurityConfig {
+
+    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
+    private String jwkSetUri;
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
@@ -40,9 +47,9 @@ public class SecurityConfig {
             .authorizeExchange(exchanges -> exchanges
                 .pathMatchers("/actuator/health", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html", "/favicon.ico").permitAll()
                 
-                // RBAC Protection (Supports both direct and /api prefixed routes)
+                // RBAC Protection
                 .pathMatchers("/dashboard/**", "/api/dashboard/**").hasRole("ADMIN")
-                .pathMatchers("/drivers/**", "/api/drivers/**", "/vehicles/**", "/api/vehicles/**", "/routes/**", "/api/routes/**").hasAnyRole("ADMIN", "DISPATCHER")
+                .pathMatchers("/drivers/**", "/api/drivers/**", "/vehicles/**", "/api/vehicles/**", "/routes/**", "/api/routes/**").hasAnyRole("ADMIN", "DISPATCHER", "DRIVER")
                 .pathMatchers("/gps/**", "/api/gps/**", "/delivery-proofs/**", "/api/delivery-proofs/**", "/orders/**", "/api/orders/**").hasAnyRole("ADMIN", "DRIVER", "DISPATCHER")
                 
                 .anyExchange().authenticated()
@@ -56,10 +63,12 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * This filter intercepts "mock_" tokens and authenticates the user manually.
-     * It also removes the Authorization header to prevent the OAuth2 filter from failing on the invalid JWT string.
-     */
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        // Disabling issuer validation simplifies local development with multiple IPs/hostnames
+        return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+    }
+
     private WebFilter mockAuthFilter() {
         return (ServerWebExchange exchange, WebFilterChain chain) -> {
             String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
@@ -69,7 +78,6 @@ public class SecurityConfig {
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                 Authentication auth = new UsernamePasswordAuthenticationToken("admin", null, authorities);
                 
-                // Mutate the exchange to remove the Authorization header so JWT filter doesn't explode
                 ServerWebExchange mutatedExchange = exchange.mutate()
                         .request(builder -> builder.headers(h -> h.remove("Authorization")))
                         .build();
@@ -90,10 +98,21 @@ public class SecurityConfig {
     static class KeycloakRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
         @Override
         public Collection<GrantedAuthority> convert(Jwt jwt) {
+            System.out.println("SECURITY: Validando Token para: " + jwt.getSubject());
+            System.out.println("SECURITY: Issuer: " + jwt.getIssuer());
+            
             Map<String, Object> realmAccess = jwt.getClaim("realm_access");
-            if (realmAccess == null) return Collections.emptyList();
+            if (realmAccess == null) {
+                System.out.println("SECURITY: No se encontró 'realm_access' en el token");
+                return Collections.emptyList();
+            }
+            
             List<String> roles = (List<String>) realmAccess.get("roles");
-            return roles == null ? Collections.emptyList() : roles.stream()
+            if (roles == null) return Collections.emptyList();
+            
+            System.out.println("SECURITY: Roles encontrados: " + roles);
+            
+            return roles.stream()
                     .map(role -> "ROLE_" + role)
                     .map(SimpleGrantedAuthority::new)
                     .collect(Collectors.toList());

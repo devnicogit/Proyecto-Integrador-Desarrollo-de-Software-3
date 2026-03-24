@@ -25,6 +25,7 @@ services:
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_HOSTNAME=192.168.1.5
     ports:
       - "8080:8080"
     volumes:
@@ -51,6 +52,9 @@ services:
   ecoroute-backend:
     build: .
     container_name: ecoroute-backend
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "192.168.1.5:host-gateway"
     restart: always
     ports:
       - "8081:8081"
