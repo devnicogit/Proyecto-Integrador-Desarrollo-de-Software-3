@@ -300,13 +300,13 @@ Se completaron los módulos críticos del MVP:
 ## 4.1 Implementación de la Arquitectura de Software
 ... (se mantiene el contenido anterior) ...
 
-## 4.8 Actualización de Funcionalidades Críticas (Febrero 2026)
-- **Motor de Tracking Avanzado:** Implementación de historial GPS, dibujo de polilíneas dinámicas y ordenamiento por proximidad geográfica.
-- **Módulo de Comprobantes:** Servicio de generación de PDF utilizando OpenPDF integrado con evidencias en S3.
-- **Dashboard de Escala:** Incorporación de Chart.js para visualización de KPIs de cumplimiento, productividad por conductor y demanda por distritos.
-- **Capa de Validación Perú:** Refuerzo de DTOs con JSR-303 para asegurar integridad en placas, teléfonos y licencias peruanas.
-- **UX Profesional:** Implementación de Layout Split-Pane, scroll independiente en tablas y paginación para alto volumen de datos.
-- **Esquema Consolidado:** Unificación de la arquitectura de datos integrando Hubs, Inventarios y Mantenimiento de Flota.
+## 4.8 Actualización de Funcionalidades Críticas (Febrero-Marzo 2026)
+- **Motor de Tracking Avanzado:** Implementación de historial GPS, dibujo de polilíneas dinámicas y ordenamiento por proximidad geográfica en la App Móvil.
+- **Visualización de Ruta Óptima:** Integración de `PolylineLayer` en Flutter para trazar el camino entre pedidos pendientes sobre el mapa.
+- **Módulo de Evidencias Móvil:** Sistema de captura de fotos Base64 con subida reactiva a S3 (LocalStack) y notificaciones asíncronas vía SQS.
+- **Seguridad Robusta:** Integración total con Keycloak (OAuth2) utilizando roles específicos (`DRIVER`) y tokens de sesión seguros.
+- **UX para Conductores:** Bloqueo de edición para pedidos en estados finales (`DELIVERED`, `FAILED`) y filtrado automático de mapas para mostrar solo paradas pendientes.
+- **Resiliencia de Datos:** Optimización de límites de memoria en WebFlux (10MB) para soportar transferencias de imágenes pesadas sin desconexiones.
 El sistema **EcoRoute** utiliza una **Arquitectura Hexagonal (Puertos y Adaptadores)** para garantizar el desacoplamiento total entre la lógica de negocio y las tecnologías externas.
 - **Domain Layer:** Contiene las entidades (`Order`, `Driver`, `Vehicle`), excepciones de negocio y los *Output Ports* (interfaces de repositorios). Es el núcleo del sistema y no tiene dependencias de frameworks externos.
 - **Application Layer:** Implementa los *Input Ports* a través de Casos de Uso (`OrderUseCasesImpl`, `DriverUseCasesImpl`). Aquí se orquestan las reglas de negocio y se interactúa con los puertos de salida.

@@ -4,6 +4,7 @@ import '../models/order_model.dart';
 
 abstract class OrderRemoteDataSource {
   Future<List<OrderModel>> getOrders();
+  Future<List<OrderModel>> getOrdersByRoute(int routeId);
   Future<void> updateOrderStatus(int orderId, String status);
   Future<void> createDeliveryProof(int orderId, String base64Image, {double? lat, double? lng});
 }
@@ -25,6 +26,25 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       }
     } on DioException catch (e) {
       throw ServerException('Fallo de red al obtener pedidos');
+    }
+  }
+
+  @override
+  Future<List<OrderModel>> getOrdersByRoute(int routeId) async {
+    try {
+      print('DATASOURCE: Obteniendo pedidos para la ruta $routeId');
+      // El backend de Spring Boot permite filtrar por routeId como Query Param
+      final response = await client.get('/orders', queryParameters: {'routeId': routeId});
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        print('DATASOURCE: ${data.length} pedidos recibidos para la ruta $routeId');
+        return data.map((json) => OrderModel.fromJson(json)).toList();
+      } else {
+        throw ServerException('Error al obtener pedidos de la ruta: ${response.statusCode}');
+      }
+    } on DioException catch (e) {
+      print('DATASOURCE: Error en getOrdersByRoute: ${e.message}');
+      throw ServerException('Fallo de red al obtener pedidos de la ruta');
     }
   }
 

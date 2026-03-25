@@ -30,11 +30,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       if (response.statusCode == 200) {
         // Usamos un 'mock token' que el backend reconoce para darnos rol DRIVER automáticamente
-        // El backend acepta tokens que empiecen por 'mock_DRIVER'
         final token = 'mock_DRIVER'; 
         
+        // Mapeo dinámico de IDs para pruebas transversales
+        String driverId = '1';
+        if (username.toLowerCase() == 'carlos') driverId = '2';
+        if (username.toLowerCase() == 'maria') driverId = '3';
+        if (username.toLowerCase() == 'pedro') driverId = '4';
+
         return UserModel(
-          id: '1', 
+          id: driverId, 
           email: '$username@ecoroute.com',
           name: username,
           token: token,
