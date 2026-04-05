@@ -26,7 +26,14 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       final currentOrders = state.orders;
       emit(OrderUpdating(currentOrders));
       
-      final result = await updateOrderStatus(event.orderId, event.status, imagePath: event.imagePath);
+      final result = await updateOrderStatus(
+        event.orderId,
+        event.status,
+        imagePath: event.imagePath,
+        signatureBase64: event.signatureBase64,
+        receiverName: event.receiverName,
+        receiverDni: event.receiverDni,
+      );
       result.fold(
         (failure) => emit(OrderError(failure.message, orders: currentOrders)),
         (success) => emit(OrderUpdateSuccess(currentOrders)),

@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../network/auth_interceptor.dart';
+import '../theme/theme_bloc.dart';
+import '../cache/local_cache.dart';
 import '../../features/auth/data/datasources/auth_local_data_source.dart';
 import '../../features/auth/data/datasources/auth_remote_data_source.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -27,6 +29,11 @@ import '../../features/orders/domain/repositories/order_repository.dart';
 import '../../features/orders/domain/usecases/get_orders_by_route.dart';
 import '../../features/orders/domain/usecases/update_order_status.dart';
 import '../../features/orders/presentation/bloc/order_bloc.dart';
+
+import '../../features/history/data/datasources/history_remote_data_source.dart';
+import '../../features/history/data/repositories/history_repository_impl.dart';
+import '../../features/history/domain/repositories/history_repository.dart';
+import '../../features/history/presentation/bloc/history_bloc.dart';
 
 final sl = GetIt.instance; // sl = Service Locator
 
@@ -53,26 +60,33 @@ Future<void> init() async {
     receiveTimeout: const Duration(seconds: 10),
   )), instanceName: 'authClient');
 
+  // --- Core: Local Cache ---
+  sl.registerLazySingleton(() => LocalCache(storage: sl()));
+
+  // --- Core: Theme ---
+  sl.registerFactory(() => ThemeBloc());
+
   // --- Features: Auth ---
   sl.registerLazySingleton<AuthRemoteDataSource>(() => AuthRemoteDataSourceImpl(
-    client: sl(instanceName: 'authClient')
+    client: sl(instanceName: 'authClient'),
+    apiClient: sl(),
   ));
   sl.registerLazySingleton<AuthLocalDataSource>(() => AuthLocalDataSourceImpl(secureStorage: sl()));
   sl.registerLazySingleton<AuthRepository>(() => AuthRepositoryImpl(
-    remoteDataSource: sl(), 
-    localDataSource: sl()
+    remoteDataSource: sl(),
+    localDataSource: sl(),
   ));
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerFactory(() => AuthBloc(
     loginUseCase: sl(),
-    authRepository: sl()
+    authRepository: sl(),
   ));
 
   // --- Features: GPS ---
   sl.registerLazySingleton<GpsSensorDataSource>(() => GpsSensorDataSourceImpl());
   sl.registerLazySingleton<GpsRepository>(() => GpsRepositoryImpl(
-    sensorDataSource: sl(), 
-    apiClient: sl()
+    sensorDataSource: sl(),
+    apiClient: sl(),
   ));
   sl.registerFactory(() => GpsBloc(gpsRepository: sl()));
 
@@ -91,4 +105,9 @@ Future<void> init() async {
     getOrdersByRoute: sl(),
     updateOrderStatus: sl(),
   ));
+
+  // --- Features: History ---
+  sl.registerLazySingleton<HistoryRemoteDataSource>(() => HistoryRemoteDataSourceImpl(client: sl()));
+  sl.registerLazySingleton<HistoryRepository>(() => HistoryRepositoryImpl(remoteDataSource: sl()));
+  sl.registerFactory(() => HistoryBloc(historyRepository: sl()));
 }

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
 import '../../../auth/presentation/bloc/auth_state.dart';
-import '../../../auth/presentation/pages/login_page.dart';
 import '../../../orders/domain/entities/order.dart';
-import '../../../orders/presentation/pages/order_detail_page.dart';
+import '../../../gps/data/repositories/gps_repository_impl.dart';
+import '../../../gps/domain/repositories/gps_repository.dart';
 import '../../../gps/presentation/bloc/gps_bloc.dart';
 import '../bloc/route_bloc.dart';
 import '../bloc/route_event.dart';
@@ -35,8 +37,13 @@ class _RoutesPageState extends State<RoutesPage> {
     // Cargar rutas del conductor al iniciar
     final authState = context.read<AuthBloc>().state;
     if (authState is Authenticated) {
-      final driverId = int.tryParse(authState.user.id) ?? 1; 
+      final driverId = int.tryParse(authState.user.id) ?? 1;
       print('DEBUG: Cargando rutas para el conductor ID: $driverId');
+
+      // Set driver info on GPS repository so location pings use the correct ID
+      final gpsRepo = sl<GpsRepository>() as GpsRepositoryImpl;
+      gpsRepo.setDriverInfo(driverId: driverId, vehicleId: driverId);
+
       context.read<RouteBloc>().add(LoadRoutesEvent(driverId));
     }
   }
@@ -48,14 +55,22 @@ class _RoutesPageState extends State<RoutesPage> {
         title: const Text('Mis Rutas de Hoy'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Historial',
+            onPressed: () => context.push('/history'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.person),
+            tooltip: 'Perfil',
+            onPressed: () => context.push('/profile'),
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
               context.read<AuthBloc>().add(LogoutRequested());
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-              );
+              context.go('/login');
             },
-          )
+          ),
         ],
       ),
       body: MultiBlocListener(
@@ -152,7 +167,7 @@ class _RoutesPageState extends State<RoutesPage> {
                                 height: 40,
                                 child: GestureDetector(
                                   onTap: () {
-                                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => OrderDetailPage(order: o)));
+                                    context.push('/orders/${o.id}', extra: o);
                                   },
                                   child: Icon(
                                     Icons.location_on,
@@ -274,12 +289,85 @@ class _RoutesPageState extends State<RoutesPage> {
                       child: BlocBuilder<RouteBloc, RouteState>(
                         builder: (context, routeState) {
                           if (routeState is RouteLoading) return const Center(child: CircularProgressIndicator());
-                          if (routeState is RouteError) return Center(child: Text('❌ Error: ${routeState.message}'));
+                          if (routeState is RouteError) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.cloud_off, size: 64, color: Colors.grey),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Error al cargar rutas: ${routeState.message}',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(color: Colors.red),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        final authState = context.read<AuthBloc>().state;
+                                        if (authState is Authenticated) {
+                                          final driverId = int.tryParse(authState.user.id) ?? 1;
+                                          context.read<RouteBloc>().add(LoadRoutesEvent(driverId));
+                                        }
+                                      },
+                                      icon: const Icon(Icons.refresh),
+                                      label: const Text('Reintentar'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+                          if (routeState is RouteLoaded && routeState.routes.isEmpty) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.route, size: 64, color: Colors.grey[400]),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'No tienes rutas asignadas para hoy',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'Las rutas se asignan diariamente. Consulta con tu supervisor.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 13, color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
                           return BlocBuilder<OrderBloc, OrderState>(
                             builder: (context, state) {
                               if (state is OrderLoading && state.orders.isEmpty) return const Center(child: CircularProgressIndicator());
                               final orders = state.orders;
-                              if (orders.isEmpty) return const Center(child: Text('No hay pedidos.'));
+                              if (orders.isEmpty) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[400]),
+                                        const SizedBox(height: 16),
+                                        const Text(
+                                          'No hay pedidos en esta ruta',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }
                               return ListView.builder(
                                 itemCount: orders.length,
                                 itemBuilder: (context, index) {
@@ -289,7 +377,7 @@ class _RoutesPageState extends State<RoutesPage> {
                                     title: Text('Pedido #${order.trackingNumber} - ${order.status}'),
                                     subtitle: Text('${order.recipientName}\n${order.deliveryAddress}'),
                                     trailing: const Icon(Icons.chevron_right),
-                                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => OrderDetailPage(order: order))),
+                                    onTap: () => context.push('/orders/${order.id}', extra: order),
                                   );
                                 },
                               );

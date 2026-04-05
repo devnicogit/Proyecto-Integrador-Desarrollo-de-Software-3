@@ -84,3 +84,44 @@ button {
   margin-bottom: 1.5rem;
   color: var(--text-main);
 }
+
+/* Tablet */
+@media (max-width: 768px) {
+  .main-container {
+    margin-left: 0 !important;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+  }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .main-content {
+    padding: 1rem !important;
+  }
+
+  .card {
+    padding: 1rem !important;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* Responsive grid */
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

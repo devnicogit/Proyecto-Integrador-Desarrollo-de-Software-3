@@ -5,6 +5,7 @@ import com.ecoroute.backend.domain.model.RouteStatus;
 import com.ecoroute.backend.domain.ports.in.CreateRouteUseCase;
 import com.ecoroute.backend.domain.ports.in.GetAllRoutesUseCase;
 import com.ecoroute.backend.domain.ports.in.UpdateRouteStatusUseCase;
+import com.ecoroute.backend.domain.ports.out.RouteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -20,6 +21,7 @@ public class RouteController {
     private final CreateRouteUseCase createRouteUseCase;
     private final UpdateRouteStatusUseCase updateRouteStatusUseCase;
     private final GetAllRoutesUseCase getAllRoutesUseCase;
+    private final RouteRepository routeRepository;
 
     @PostMapping
     public Mono<Route> createRoute(@RequestBody CreateRouteRequest request) {
@@ -51,5 +53,10 @@ public class RouteController {
             return getAllRoutesUseCase.getRoutesByFilters(date, status);
         }
         return getAllRoutesUseCase.getAllRoutes();
+    }
+
+    @DeleteMapping("/{id}")
+    public Mono<Void> deleteRoute(@PathVariable Long id) {
+        return routeRepository.deleteById(id);
     }
 }

@@ -7,7 +7,21 @@ class UpdateOrderStatusUseCase {
 
   UpdateOrderStatusUseCase(this.repository);
 
-  Future<Either<Failure, void>> call(int orderId, String status, {String? imagePath}) async {
-    return await repository.updateOrderStatus(orderId, status, imagePath: imagePath);
+  Future<Either<Failure, void>> call(
+    int orderId,
+    String status, {
+    String? imagePath,
+    String? signatureBase64,
+    String? receiverName,
+    String? receiverDni,
+  }) async {
+    return await repository.updateOrderStatus(
+      orderId,
+      status,
+      imagePath: imagePath,
+      signatureBase64: signatureBase64,
+      receiverName: receiverName,
+      receiverDni: receiverDni,
+    );
   }
 }

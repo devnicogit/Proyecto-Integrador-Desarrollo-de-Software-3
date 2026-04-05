@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../domain/entities/order.dart';
 import '../bloc/order_bloc.dart';
 import '../bloc/order_event.dart';
 import '../bloc/order_state.dart';
+import '../widgets/signature_pad.dart';
 
 class OrderDetailPage extends StatefulWidget {
   final OrderEntity order;
@@ -21,6 +23,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   final ImagePicker _picker = ImagePicker();
   late String _selectedStatus;
   late bool _isReadOnly;
+  String? _signatureBase64;
+  late TextEditingController _receiverNameController;
+  late TextEditingController _receiverDniController;
 
   final List<String> _statuses = ['PENDING', 'IN_TRANSIT', 'DELIVERED', 'FAILED'];
 
@@ -33,6 +38,15 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     if (!_statuses.contains(_selectedStatus)) {
       _selectedStatus = 'PENDING';
     }
+    _receiverNameController = TextEditingController(text: widget.order.recipientName);
+    _receiverDniController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _receiverNameController.dispose();
+    _receiverDniController.dispose();
+    super.dispose();
   }
 
   Future<void> _takePhoto() async {
@@ -63,9 +77,16 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
     context.read<OrderBloc>().add(
       UpdateOrderStatusEvent(
-        widget.order.id, 
+        widget.order.id,
         _selectedStatus,
-        imagePath: _imageEvidence?.path
+        imagePath: _imageEvidence?.path,
+        signatureBase64: _signatureBase64,
+        receiverName: _receiverNameController.text.trim().isNotEmpty
+            ? _receiverNameController.text.trim()
+            : null,
+        receiverDni: _receiverDniController.text.trim().isNotEmpty
+            ? _receiverDniController.text.trim()
+            : null,
       )
     );
   }
@@ -86,7 +107,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
             );
             context.read<OrderBloc>().add(LoadOrdersByRouteEvent(widget.order.routeId));
-            Navigator.pop(context);
+            context.pop();
           } else if (state is OrderError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -190,9 +211,65 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                           ),
                   ),
                 ),
+                const SizedBox(height: 24),
+
+                // Datos del receptor - only show when delivering
+                if (!_isReadOnly && _selectedStatus == 'DELIVERED') ...[
+                  const Text('Datos del Receptor', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _receiverNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre del Receptor',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _receiverDniController,
+                    decoration: const InputDecoration(
+                      labelText: 'DNI del Receptor',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.badge),
+                      hintText: '12345678',
+                    ),
+                    keyboardType: TextInputType.number,
+                    maxLength: 8,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+
+                // Firma del receptor - only show when delivering
+                if (!_isReadOnly && _selectedStatus == 'DELIVERED')
+                  SignaturePad(
+                    onSaved: (base64) {
+                      setState(() {
+                        _signatureBase64 = base64;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Firma capturada correctamente'),
+                          backgroundColor: Colors.green,
+                          duration: Duration(seconds: 1),
+                        ),
+                      );
+                    },
+                  ),
+                if (_signatureBase64 != null && _selectedStatus == 'DELIVERED')
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                        const SizedBox(width: 4),
+                        const Text('Firma guardada', style: TextStyle(color: Colors.green)),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 32),
 
-                // 🚀 Botón Guardar
+                // Boton Guardar
                 if (!_isReadOnly)
                   ElevatedButton(
                     onPressed: state is OrderUpdating ? null : _submitDelivery,

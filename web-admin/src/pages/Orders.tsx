@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Search, Loader2, Plus, X, Package, Trash2, MapPin, User, Phone, Mail, Calendar, Info, RefreshCw, AlertCircle, FileText, CheckCircle2 } from 'lucide-react';
+import { Search, Loader2, Plus, X, Package, Trash2, MapPin, User, Phone, Mail, Calendar, Info, RefreshCw, AlertCircle, FileText, CheckCircle2, Upload } from 'lucide-react';
 import { getAllOrders, createOrder, deleteOrder, updateOrderStatus } from '../services/orderService';
 import type { Order } from '../services/orderService';
 import { getAllRoutes } from '../services/routeService';
@@ -23,10 +23,19 @@ const Orders: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   
+  // CSV Import state
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvPreview, setCsvPreview] = useState<string[][]>([]);
+  const [isImporting, setIsImporting] = useState(false);
+
   // Update Status Form state
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [newStatus, setNewStatus] = useState('');
   const [reason, setReason] = useState('');
+
+  // Proof photo state
+  const [proofPhoto, setProofPhoto] = useState<string | null>(null);
 
   // Create Order Form state
   const [formData, setFormData] = useState({
@@ -174,25 +183,83 @@ const Orders: React.FC = () => {
     }
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProofPhoto(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSimulateDelivery = async (orderId: number) => {
-    if (!window.confirm('¿Desea simular la entrega con evidencia digital para este pedido?')) return;
-    
+    if (!proofPhoto) {
+      alert('Por favor, seleccione una foto de evidencia antes de registrar la entrega.');
+      return;
+    }
+    if (!window.confirm('Desea registrar la entrega con la foto seleccionada?')) return;
+
     try {
       const deliveryBody = {
         orderId: orderId,
-        imageUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKma1gAAAABJRU5ErkJggg==",
+        imageUrl: proofPhoto,
         signatureDataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKma1gAAAABJRU5ErkJggg==",
         receiverName: "Entrega desde Dashboard",
         receiverDni: "00000000",
         latitude: -12.095,
         longitude: -77.020
       };
-      
+
       await api.post('/delivery-proofs', deliveryBody);
-      alert('¡Evidencia registrada con éxito! El pedido ahora es DELIVERED.');
+      alert('Evidencia registrada con exito! El pedido ahora es DELIVERED.');
+      setProofPhoto(null);
       fetchData();
     } catch (error) {
       alert('Error al registrar la evidencia.');
+    }
+  };
+
+  const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string;
+      const lines = text.split('\n').filter(l => l.trim() !== '');
+      const parsed = lines.map(line => line.split(',').map(cell => cell.trim().replace(/^"|"$/g, '')));
+      setCsvPreview(parsed.slice(0, 6)); // header + 5 rows
+    };
+    reader.readAsText(file);
+  };
+
+  const handleCsvImport = async () => {
+    if (!csvFile) return;
+    setIsImporting(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const text = ev.target?.result as string;
+        try {
+          await api.post('/orders/bulk-csv', text, {
+            headers: { 'Content-Type': 'text/plain' }
+          });
+          alert('Pedidos importados exitosamente.');
+          setIsCsvModalOpen(false);
+          setCsvFile(null);
+          setCsvPreview([]);
+          fetchData();
+        } catch (error) {
+          alert('Error al importar el CSV.');
+        } finally {
+          setIsImporting(false);
+        }
+      };
+      reader.readAsText(csvFile);
+    } catch (error) {
+      alert('Error al leer el archivo.');
+      setIsImporting(false);
     }
   };
 
@@ -241,6 +308,9 @@ const Orders: React.FC = () => {
             <option value="FAILED">FAILED</option>
             <option value="RETURNED">RETURNED</option>
           </select>
+          <button onClick={() => { setCsvFile(null); setCsvPreview([]); setIsCsvModalOpen(true); }} style={{ backgroundColor: '#10b981', color: '#fff', padding: '0.625rem 1.25rem', borderRadius: '0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Upload size={18} /> Importar CSV
+          </button>
           <button onClick={() => setIsCreateModalOpen(true)} style={{ backgroundColor: '#2563eb', color: '#fff', padding: '0.625rem 1.25rem', borderRadius: '0.5rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Plus size={18} /> Nuevo Pedido
           </button>
@@ -365,6 +435,52 @@ const Orders: React.FC = () => {
         </div>
       )}
 
+      {/* Modal: Importar CSV */}
+      {isCsvModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="card" style={{ width: '100%', maxWidth: '650px', position: 'relative' }}>
+            <button onClick={() => { setIsCsvModalOpen(false); setCsvFile(null); setCsvPreview([]); }} style={{ position: 'absolute', right: '1rem', top: '1rem', background: 'none' }}><X size={20} /></button>
+            <h3 style={{ marginBottom: '1.5rem', fontWeight: 700 }}>Importar Pedidos desde CSV</h3>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>Seleccionar archivo CSV</label>
+              <input type="file" accept=".csv" onChange={handleCsvFileChange} style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.25rem' }} />
+            </div>
+
+            {csvPreview.length > 0 && (
+              <div style={{ marginBottom: '1.5rem', overflowX: 'auto' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem', color: '#64748b' }}>Vista previa (primeras 5 filas):</p>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                      {csvPreview[0]?.map((header, i) => (
+                        <th key={i} style={{ padding: '0.5rem', color: '#64748b', fontWeight: 600, textAlign: 'left' }}>{header}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvPreview.slice(1).map((row, ri) => (
+                      <tr key={ri} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        {row.map((cell, ci) => (
+                          <td key={ci} style={{ padding: '0.5rem' }}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+              <button type="button" onClick={() => { setIsCsvModalOpen(false); setCsvFile(null); setCsvPreview([]); }} style={{ padding: '0.6rem 1.25rem', borderRadius: '0.5rem', backgroundColor: '#f1f5f9' }}>Cancelar</button>
+              <button type="button" onClick={handleCsvImport} disabled={!csvFile || isImporting} style={{ padding: '0.6rem 1.25rem', borderRadius: '0.5rem', backgroundColor: csvFile && !isImporting ? '#2563eb' : '#94a3b8', color: '#fff', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {isImporting ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Importar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Detalle e Incidencia */}
       {isDetailModalOpen && selectedOrder && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, backdropFilter: 'blur(4px)' }}>
@@ -408,25 +524,51 @@ const Orders: React.FC = () => {
                 )}
 
                 {selectedOrder.status !== 'DELIVERED' && (
-                  <button 
-                    onClick={() => handleSimulateDelivery(selectedOrder.id)}
-                    style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      gap: '0.5rem', 
-                      padding: '0.75rem', 
-                      backgroundColor: '#3b82f6', 
-                      color: '#fff', 
-                      borderRadius: '0.5rem', 
-                      fontWeight: 700,
-                      border: 'none',
-                      cursor: 'pointer',
-                      marginTop: '1rem'
-                    }}
-                  >
-                    <CheckCircle2 size={18} /> Registrar Entrega (Simulación)
-                  </button>
+                  <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem', color: '#475569' }}>Foto de evidencia</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '0.5rem',
+                          fontSize: '0.8rem',
+                        }}
+                      />
+                      {proofPhoto && (
+                        <div style={{ marginTop: '0.5rem', textAlign: 'center' }}>
+                          <img
+                            src={proofPhoto}
+                            alt="Vista previa"
+                            style={{ maxWidth: '100%', maxHeight: '150px', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleSimulateDelivery(selectedOrder.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        padding: '0.75rem',
+                        backgroundColor: proofPhoto ? '#3b82f6' : '#94a3b8',
+                        color: '#fff',
+                        borderRadius: '0.5rem',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: proofPhoto ? 'pointer' : 'not-allowed',
+                      }}
+                      disabled={!proofPhoto}
+                    >
+                      <CheckCircle2 size={18} /> Registrar Entrega
+                    </button>
+                  </div>
                 )}
 
                 <button onClick={() => setIsUpdatingStatus(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.75rem', border: '1px solid #2563eb', color: '#2563eb', borderRadius: '0.5rem', fontWeight: 600, backgroundColor: 'transparent', marginTop: '0.5rem' }}>

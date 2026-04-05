@@ -6,7 +6,15 @@ abstract class OrderRemoteDataSource {
   Future<List<OrderModel>> getOrders();
   Future<List<OrderModel>> getOrdersByRoute(int routeId);
   Future<void> updateOrderStatus(int orderId, String status);
-  Future<void> createDeliveryProof(int orderId, String base64Image, {double? lat, double? lng});
+  Future<void> createDeliveryProof({
+    required int orderId,
+    required String base64Image,
+    String? signatureBase64,
+    required String receiverName,
+    required String receiverDni,
+    double? lat,
+    double? lng,
+  });
 }
 
 class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
@@ -24,7 +32,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       } else {
         throw ServerException('Error al obtener pedidos: ${response.statusCode}');
       }
-    } on DioException catch (e) {
+    } on DioException {
       throw ServerException('Fallo de red al obtener pedidos');
     }
   }
@@ -69,7 +77,15 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   }
 
   @override
-  Future<void> createDeliveryProof(int orderId, String base64Image, {double? lat, double? lng}) async {
+  Future<void> createDeliveryProof({
+    required int orderId,
+    required String base64Image,
+    String? signatureBase64,
+    required String receiverName,
+    required String receiverDni,
+    double? lat,
+    double? lng,
+  }) async {
     try {
       print('DATASOURCE: Subiendo evidencia para pedido $orderId');
       String cleanBase64 = base64Image;
@@ -86,12 +102,12 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         data: {
           'orderId': orderId,
           'imageUrl': cleanBase64,
-          'signatureDataUrl': '', // Dejamos vacío en lugar de 'no-signature' para evitar error de Base64
-          'receiverName': 'Cliente Final',
-          'receiverDni': '00000000',
+          'signatureDataUrl': signatureBase64 ?? '',
+          'receiverName': receiverName,
+          'receiverDni': receiverDni,
           'latitude': lat ?? 0.0,
           'longitude': lng ?? 0.0,
-          'verifiedAt': timestamp, 
+          'verifiedAt': timestamp,
         },
       );
       print('DATASOURCE: Status subida: ${response.statusCode}');

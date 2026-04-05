@@ -19,10 +19,20 @@ class LoadOrdersByRouteEvent extends OrderEvent {
 class UpdateOrderStatusEvent extends OrderEvent {
   final int orderId;
   final String status;
-  final String? imagePath; // Para la evidencia (Phase 3)
+  final String? imagePath;
+  final String? signatureBase64;
+  final String? receiverName;
+  final String? receiverDni;
 
-  const UpdateOrderStatusEvent(this.orderId, this.status, {this.imagePath});
+  const UpdateOrderStatusEvent(
+    this.orderId,
+    this.status, {
+    this.imagePath,
+    this.signatureBase64,
+    this.receiverName,
+    this.receiverDni,
+  });
 
   @override
-  List<Object> get props => [orderId, status, imagePath ?? ''];
+  List<Object> get props => [orderId, status, imagePath ?? '', signatureBase64 ?? '', receiverName ?? '', receiverDni ?? ''];
 }

@@ -4,5 +4,5 @@ import '../entities/order.dart';
 
 abstract class OrderRepository {
   Future<Either<Failure, List<OrderEntity>>> getOrdersByRoute(int routeId);
-  Future<Either<Failure, void>> updateOrderStatus(int orderId, String status, {String? imagePath});
+  Future<Either<Failure, void>> updateOrderStatus(int orderId, String status, {String? imagePath, String? signatureBase64, String? receiverName, String? receiverDni});
 }

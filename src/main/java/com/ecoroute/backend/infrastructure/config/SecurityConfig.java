@@ -28,30 +28,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
 public class SecurityConfig {
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
-    private String jwkSetUri;
-
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         http
             .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .authorizeExchange(exchanges -> exchanges
-                .pathMatchers("/actuator/health", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html", "/favicon.ico").permitAll()
+                .pathMatchers("/actuator/health", "/v3/api-docs/**", "/webjars/**", "/swagger-ui.html", "/favicon.ico", "/ws/**").permitAll()
                 
                 // RBAC Protection
                 .pathMatchers("/dashboard/**", "/api/dashboard/**").hasRole("ADMIN")
                 .pathMatchers("/drivers/**", "/api/drivers/**", "/vehicles/**", "/api/vehicles/**", "/routes/**", "/api/routes/**").hasAnyRole("ADMIN", "DISPATCHER", "DRIVER")
                 .pathMatchers("/gps/**", "/api/gps/**", "/delivery-proofs/**", "/api/delivery-proofs/**", "/orders/**", "/api/orders/**").hasAnyRole("ADMIN", "DRIVER", "DISPATCHER")
-                
+                .pathMatchers("/purchases/**", "/api/purchases/**").hasAnyRole("ADMIN", "DISPATCHER")
+                .pathMatchers("/notifications/**", "/api/notifications/**").hasAnyRole("ADMIN", "DISPATCHER", "DRIVER")
+                .pathMatchers("/reports/**", "/api/reports/**").hasRole("ADMIN")
+                .pathMatchers("/users/**", "/api/users/**").hasRole("ADMIN")
+
                 .anyExchange().authenticated()
             )
             // THE MOCK FILTER: Must run BEFORE the JWT authentication filter
@@ -61,12 +59,6 @@ public class SecurityConfig {
             );
             
         return http.build();
-    }
-
-    @Bean
-    public JwtDecoder jwtDecoder() {
-        // Disabling issuer validation simplifies local development with multiple IPs/hostnames
-        return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
     }
 
     private WebFilter mockAuthFilter() {

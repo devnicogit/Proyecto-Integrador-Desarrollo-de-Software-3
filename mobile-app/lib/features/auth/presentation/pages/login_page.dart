@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../routes/presentation/pages/routes_page.dart';
+import 'package:go_router/go_router.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -40,11 +40,9 @@ class _LoginPageState extends State<LoginPage> {
                   );
                 } else if (state is Authenticated) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('¡Bienvenido, ${state.user.name}!'), backgroundColor: Colors.green),
+                    SnackBar(content: Text('Bienvenido, ${state.user.name}!'), backgroundColor: Colors.green),
                   );
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const RoutesPage()),
-                  );
+                  context.go('/routes');
                 }
               },
               builder: (context, state) {

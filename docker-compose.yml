@@ -3,7 +3,7 @@ services:
     image: postgres:14-alpine
     container_name: ecoroute-db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       - POSTGRES_USER=${DB_USER:-user}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-password}
@@ -25,7 +25,8 @@ services:
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
-      - KC_HOSTNAME=192.168.1.5
+      - KC_HOSTNAME=localhost
+      - KC_HOSTNAME_STRICT=false
     ports:
       - "8080:8080"
     volumes:
@@ -54,7 +55,6 @@ services:
     container_name: ecoroute-backend
     extra_hosts:
       - "host.docker.internal:host-gateway"
-      - "192.168.1.5:host-gateway"
     restart: always
     ports:
       - "8081:8081"

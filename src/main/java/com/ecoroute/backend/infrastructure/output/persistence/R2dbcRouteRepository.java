@@ -47,4 +47,9 @@ public class R2dbcRouteRepository implements RouteRepository {
         return springDataRouteRepository.findByFilters(date, status != null ? status.name() : null)
                 .map(RoutePersistenceMapper::toDomain);
     }
+
+    @Override
+    public Mono<Void> deleteById(Long id) {
+        return springDataRouteRepository.deleteById(id);
+    }
 }

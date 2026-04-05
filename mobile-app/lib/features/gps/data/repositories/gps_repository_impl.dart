@@ -9,10 +9,20 @@ class GpsRepositoryImpl implements GpsRepository {
   final GpsSensorDataSource sensorDataSource;
   final Dio apiClient;
 
+  /// Current driver and vehicle IDs, set from auth state.
+  int _driverId = 1;
+  int _vehicleId = 1;
+
   GpsRepositoryImpl({
-    required this.sensorDataSource, 
-    required this.apiClient
+    required this.sensorDataSource,
+    required this.apiClient,
   });
+
+  /// Update driver and vehicle IDs from the authenticated user.
+  void setDriverInfo({required int driverId, int vehicleId = 1}) {
+    _driverId = driverId;
+    _vehicleId = vehicleId;
+  }
 
   @override
   Future<Either<Failure, bool>> checkAndRequestPermissions() async {
@@ -32,18 +42,17 @@ class GpsRepositoryImpl implements GpsRepository {
   @override
   Future<Either<Failure, void>> sendLocationToBackend(Position position) async {
     try {
-      // 🚀 Endpoint WebFlux para el dashboard en tiempo real
       await apiClient.post('/gps/ping', data: {
         'latitude': position.latitude,
         'longitude': position.longitude,
         'speedKmh': position.speed * 3.6, // m/s to km/h
         'headingDegrees': position.heading,
-        'driverId': 1, // Fallback demo driver
-        'vehicleId': 1, // Fallback demo vehicle
+        'driverId': _driverId,
+        'vehicleId': _vehicleId,
       });
       return const Right(null);
     } catch (e) {
-      return const Left(ServerFailure('No se pudo enviar ubicación al servidor'));
+      return const Left(ServerFailure('No se pudo enviar ubicacion al servidor'));
     }
   }
 }

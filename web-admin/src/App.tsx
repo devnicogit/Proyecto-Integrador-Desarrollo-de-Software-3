@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
@@ -8,26 +8,47 @@ import Orders from './pages/Orders';
 import RoutesPage from './pages/Routes';
 import Drivers from './pages/Drivers';
 import Vehicles from './pages/Vehicles';
+import Users from './pages/Users';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import Reports from './pages/Reports';
+import Purchases from './pages/Purchases';
 import './styles/global.css';
 
 const AuthenticatedLayout: React.FC = () => {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const sidebarWidth = isMobile ? 0 : (sidebarCollapsed ? 60 : 260);
+
   return (
     <div className="dashboard-layout">
-      <Sidebar />
-      <div className="main-container">
+      <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} />
+      <div
+        className="main-container"
+        style={{ marginLeft: `${sidebarWidth}px`, transition: 'margin-left 0.2s ease' }}
+      >
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/orders" element={<Orders />} />
           <Route path="/routes" element={<RoutesPage />} />
-          
+
           {/* Admin Only Routes */}
           <Route element={<ProtectedRoute roles={['ADMIN']} />}>
             <Route path="/drivers" element={<Drivers />} />
             <Route path="/vehicles" element={<Vehicles />} />
-            <Route path="/purchases" element={<div className="main-content"><h2>Módulo de Compras (En Desarrollo)</h2></div>} />
+            <Route path="/users" element={<Users />} />
+            <Route path="/purchases" element={<Purchases />} />
+            <Route path="/reports" element={<Reports />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

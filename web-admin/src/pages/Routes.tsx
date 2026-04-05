@@ -6,8 +6,8 @@ import { getAllDrivers } from '../services/driverService';
 import type { Driver } from '../services/driverService';
 import { getAllVehicles } from '../services/vehicleService';
 import type { Vehicle } from '../services/vehicleService';
-import { getVehicleHistory } from '../services/gpsService';
-import type { VehicleGpsHistory } from '../services/gpsService';
+import { getVehicleHistory, connectGpsWebSocket } from '../services/gpsService';
+import type { VehicleGpsHistory, GpsWebSocketMessage } from '../services/gpsService';
 import { getAllOrders } from '../services/orderService';
 import type { Order } from '../services/orderService';
 import TrackingMap from '../components/TrackingMap';
@@ -127,13 +127,75 @@ const RoutesPage: React.FC = () => {
       fetchGpsHistory(selectedRoute.vehicleId);
       fetchRouteOrders(selectedRoute.id);
       let interval: any;
+      let ws: WebSocket | null = null;
+      let wsConnected = false;
+
       if (selectedRoute.status === 'IN_PROGRESS') {
-        interval = setInterval(() => {
-          fetchGpsHistory(selectedRoute.vehicleId);
-          fetchRouteOrders(selectedRoute.id);
-        }, 5000);
+        // Try WebSocket first for real-time GPS updates
+        try {
+          ws = connectGpsWebSocket(selectedRoute.vehicleId, (data: GpsWebSocketMessage) => {
+            // Update GPS history with the new real-time point at the front
+            setGpsHistory(prev => {
+              const newPoint: VehicleGpsHistory = {
+                id: Date.now(),
+                vehicleId: data.vehicleId,
+                driverId: selectedRoute.driverId,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                speedKmh: data.speedKmh,
+                headingDegrees: 0,
+                pingTime: new Date(data.timestamp).toISOString()
+              };
+              return [newPoint, ...prev];
+            });
+          });
+
+          ws.onopen = () => {
+            wsConnected = true;
+            // WebSocket connected: only poll orders, GPS comes via WS
+            interval = setInterval(() => {
+              fetchRouteOrders(selectedRoute.id);
+            }, 5000);
+          };
+
+          ws.onerror = () => {
+            wsConnected = false;
+            // Fallback to polling for both GPS and orders
+            if (!interval) {
+              interval = setInterval(() => {
+                fetchGpsHistory(selectedRoute.vehicleId);
+                fetchRouteOrders(selectedRoute.id);
+              }, 5000);
+            }
+          };
+
+          ws.onclose = () => {
+            if (wsConnected) {
+              wsConnected = false;
+              // WebSocket closed unexpectedly, start full polling fallback
+              clearInterval(interval);
+              interval = setInterval(() => {
+                fetchGpsHistory(selectedRoute.vehicleId);
+                fetchRouteOrders(selectedRoute.id);
+              }, 5000);
+            }
+          };
+        } catch {
+          // WebSocket creation failed, fall back to polling
+          interval = setInterval(() => {
+            fetchGpsHistory(selectedRoute.vehicleId);
+            fetchRouteOrders(selectedRoute.id);
+          }, 5000);
+        }
       }
-      return () => clearInterval(interval);
+
+      return () => {
+        clearInterval(interval);
+        if (ws) {
+          ws.onclose = null; // Prevent fallback on intentional close
+          ws.close();
+        }
+      };
     } else {
       setGpsHistory([]);
       setSelectedRouteOrders([]);
