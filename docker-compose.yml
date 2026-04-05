@@ -35,7 +35,7 @@ services:
       - ecoroute-network
 
   localstack:
-    image: localstack/localstack
+    image: localstack/localstack:3.8
     container_name: ecoroute-localstack
     ports:
       - "4566:4566"
@@ -44,6 +44,7 @@ services:
       - DEFAULT_REGION=us-east-1
       - EDGE_PORT=4566
       - DEBUG=1
+      - LOCALSTACK_ACKNOWLEDGE_ACCOUNT_REQUIREMENT=1
     volumes:
       - "./infra/localstack:/etc/localstack/init/ready.d" # Init scripts
       - "/var/run/docker.sock:/var/run/docker.sock"
