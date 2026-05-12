@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { FileText, Download, Filter, BarChart3, TrendingUp, Clock, AlertTriangle, Loader2, X } from 'lucide-react';
+import { FileText, Download, Filter, BarChart3, TrendingUp, Clock, AlertTriangle, Loader2, X, Activity } from 'lucide-react';
 import { getOrdersSummary, getDriverPerformance, getRouteEfficiency } from '../services/reportService';
 import type { OrdersSummary, DriverPerformance } from '../services/reportService';
 import { getAllDrivers } from '../services/driverService';
 import type { Driver } from '../services/driverService';
 import { Bar } from 'react-chartjs-2';
 import Pagination from '../components/Pagination';
+import ThesisKpis from '../components/ThesisKpis';
 
 const StatCard: React.FC<{
   title: string;
@@ -30,6 +31,7 @@ const Reports: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [filters, setFilters] = useState({ driverId: '', startDate: '', endDate: '' });
+  const [view, setView] = useState<'thesis' | 'operational'>('thesis');
 
   // Pagination for route efficiency table
   const [currentPage, setCurrentPage] = useState(1);
@@ -59,7 +61,7 @@ const Reports: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [filters]);
+  useEffect(() => { if (view === 'operational') fetchData(); }, [filters, view]);
 
   const totalOrders = summary?.ordersByStatus?.reduce((acc, curr) => acc + curr.count, 0) || 0;
 
@@ -129,7 +131,7 @@ const Reports: React.FC = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentRoutes = routeEfficiency.slice(indexOfFirstItem, indexOfLastItem);
 
-  if (loading) {
+  if (loading && view === 'operational') {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}><Loader2 className="animate-spin" size={48} color="#2563eb" /></div>;
   }
 
@@ -143,6 +145,37 @@ const Reports: React.FC = () => {
         </div>
         <span style={{ fontSize: '0.875rem', color: '#64748b' }}>Actualizado hoy a las {new Date().toLocaleTimeString()}</span>
       </div>
+
+      {/* View toggle: Thesis KPIs vs Operational */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0' }}>
+        <button
+          onClick={() => setView('thesis')}
+          style={{
+            padding: '0.6rem 1.25rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer',
+            backgroundColor: 'transparent', border: 'none',
+            borderBottom: view === 'thesis' ? '3px solid #2563eb' : '3px solid transparent',
+            color: view === 'thesis' ? '#2563eb' : '#64748b',
+            display: 'flex', alignItems: 'center', gap: '0.4rem'
+          }}
+        >
+          <Activity size={16} /> KPIs de Gesti&oacute;n Administrativa (Tesis)
+        </button>
+        <button
+          onClick={() => setView('operational')}
+          style={{
+            padding: '0.6rem 1.25rem', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer',
+            backgroundColor: 'transparent', border: 'none',
+            borderBottom: view === 'operational' ? '3px solid #2563eb' : '3px solid transparent',
+            color: view === 'operational' ? '#2563eb' : '#64748b',
+            display: 'flex', alignItems: 'center', gap: '0.4rem'
+          }}
+        >
+          <BarChart3 size={16} /> Reportes Operativos
+        </button>
+      </div>
+
+      {view === 'thesis' && <ThesisKpis />}
+      {view === 'operational' && <>
 
       {/* Filter Bar */}
       <div className="card" style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#f8fafc' }}>
@@ -237,6 +270,7 @@ const Reports: React.FC = () => {
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 };

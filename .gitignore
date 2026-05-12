@@ -27,3 +27,17 @@ keycloak_data/
 # OS
 Thumbs.db
 .DS_Store
+
+# Claude Code worktrees / session state
+.claude/
+
+# Tesis: release artifacts (regenerables con build_anexo_figuras_completo.py + zip)
+EcoRoute_TesisPack_Total*.zip
+
+# Tesis: derivados temporales de capturas (regenerables con safe_capture.py shrink_all)
+tesis_entregables/figuras_capturas/*_thumb.png
+tesis_entregables/figuras_capturas/_diag_*
+tesis_entregables/figuras_capturas/FM_test_current*
+
+# Tesis: UI dumps de uiautomator (debug)
+tesis_entregables/ui_*.xml

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Figura FM2 — App Móvil Conductor</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,'Segoe UI',sans-serif}
+body{background:#1e293b;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px;gap:32px;flex-wrap:wrap}
+.phone{width:340px;height:680px;background:white;border-radius:36px;overflow:hidden;border:8px solid #0f172a;box-shadow:0 30px 80px rgba(0,0,0,.5);position:relative}
+.notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:24px;background:#0f172a;border-radius:0 0 16px 16px;z-index:10}
+.status-bar{background:#2563eb;color:white;padding:30px 16px 8px;font-size:11px;display:flex;justify-content:space-between}
+.app-header{background:#2563eb;color:white;padding:12px 16px 16px}
+.app-header h1{font-size:18px;font-weight:600}
+.app-header p{font-size:12px;opacity:.85;margin-top:4px}
+.start-route{background:#16a34a;color:white;padding:14px;text-align:center;font-weight:700;font-size:14px;letter-spacing:.5px}
+.orders-list{background:#f1f5f9;padding:12px;height:calc(100% - 180px);overflow-y:auto}
+.order-card{background:white;border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-left:4px solid}
+.order-card.delivered{border-left-color:#16a34a;opacity:.6}
+.order-card.transit{border-left-color:#f59e0b}
+.order-card.pending{border-left-color:#94a3b8}
+.order-card.next{border-left-color:#2563eb;box-shadow:0 4px 12px rgba(37,99,235,.2)}
+.order-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.order-id{font-weight:700;font-size:13px;color:#1e293b}
+.order-status{font-size:10px;padding:3px 8px;border-radius:8px;font-weight:600}
+.status-delivered{background:#dcfce7;color:#166534}
+.status-transit{background:#fef3c7;color:#92400e}
+.status-pending{background:#e2e8f0;color:#475569}
+.order-client{font-size:13px;font-weight:600;color:#1e293b;margin-bottom:4px}
+.order-addr{font-size:11px;color:#64748b;display:flex;align-items:center;gap:4px}
+.order-distance{font-size:11px;color:#2563eb;margin-top:6px;font-weight:600}
+.bottom-nav{position:absolute;bottom:0;left:0;right:0;background:white;border-top:1px solid #e2e8f0;display:flex;padding:8px 0}
+.nav-item{flex:1;text-align:center;padding:4px;font-size:10px;color:#94a3b8}
+.nav-item.active{color:#2563eb;font-weight:600}
+.nav-icon{font-size:20px;display:block;margin-bottom:2px}
+
+/* Pantalla de captura */
+.phone.capture .app-header{background:#0f172a}
+.capture-content{padding:20px;height:calc(100% - 130px);overflow-y:auto;background:#f8fafc}
+.evidence-step{background:white;border-radius:12px;padding:16px;margin-bottom:12px;border:2px solid #16a34a}
+.evidence-step h3{font-size:13px;color:#16a34a;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.photo-preview{width:100%;height:140px;background:linear-gradient(135deg,#cbd5e1,#94a3b8);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#475569;font-size:48px;margin-bottom:8px;position:relative;overflow:hidden}
+.photo-preview::after{content:'📦 Paquete entregado';position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.5);color:white;padding:2px 8px;border-radius:4px;font-size:10px}
+.signature-pad{width:100%;height:90px;background:white;border:2px dashed #cbd5e1;border-radius:8px;position:relative;margin-bottom:8px;overflow:hidden}
+.signature-pad svg{position:absolute;top:0;left:0}
+.signature-label{font-size:10px;color:#94a3b8;text-align:center;margin-top:4px}
+.dni-input{width:100%;padding:10px;border:2px solid #16a34a;border-radius:8px;font-size:16px;font-weight:600;text-align:center;letter-spacing:2px;background:#dcfce7;color:#166534}
+.save-btn{background:#16a34a;color:white;width:100%;padding:14px;border:none;border-radius:10px;font-size:15px;font-weight:700;margin-top:8px}
+</style></head>
+<body>
+
+<!-- Pantalla 1: Lista de pedidos -->
+<div class="phone">
+<div class="notch"></div>
+<div class="status-bar"><span>20:42</span><span>📶 LTE 🔋 78%</span></div>
+<div class="app-header">
+<h1>Mi Ruta Hoy</h1>
+<p>Carlos Quispe · AFT-101 · 5 pedidos</p>
+</div>
+<div class="start-route">🟢 Ruta en curso · 2/5 entregados</div>
+<div class="orders-list">
+
+<div class="order-card delivered">
+<div class="order-top"><span class="order-id">GR-2001</span><span class="order-status status-delivered">✓ Entregado</span></div>
+<div class="order-client">Gamma Cargo S.A.C.</div>
+<div class="order-addr">📍 Av. Argentina 1456, Callao</div>
+</div>
+
+<div class="order-card delivered">
+<div class="order-top"><span class="order-id">GR-2002</span><span class="order-status status-delivered">✓ Entregado</span></div>
+<div class="order-client">Aceros Dayana S.A.C.</div>
+<div class="order-addr">📍 Av. Nicolás Ayllón 345, Ate</div>
+</div>
+
+<div class="order-card next">
+<div class="order-top"><span class="order-id">GR-2003</span><span class="order-status status-transit">🚐 En tránsito</span></div>
+<div class="order-client">Ferretería El Progreso</div>
+<div class="order-addr">📍 Av. Túpac Amaru 1234, Comas</div>
+<div class="order-distance">📏 A 2.3 km · ETA 8 min</div>
+</div>
+
+<div class="order-card pending">
+<div class="order-top"><span class="order-id">GR-2004</span><span class="order-status status-pending">⏳ Pendiente</span></div>
+<div class="order-client">Distribuidora Mi Perú</div>
+<div class="order-addr">📍 Av. Universitaria 5678, Los Olivos</div>
+</div>
+
+<div class="order-card pending">
+<div class="order-top"><span class="order-id">GR-2005</span><span class="order-status status-pending">⏳ Pendiente</span></div>
+<div class="order-client">Almacenes Santa Rosa</div>
+<div class="order-addr">📍 Av. Carretera Central, Santa Anita</div>
+</div>
+
+</div>
+<div class="bottom-nav">
+<div class="nav-item active"><span class="nav-icon">📦</span>Rutas</div>
+<div class="nav-item"><span class="nav-icon">🗺️</span>Mapa</div>
+<div class="nav-item"><span class="nav-icon">📋</span>Historial</div>
+<div class="nav-item"><span class="nav-icon">👤</span>Perfil</div>
+</div>
+</div>
+
+<!-- Pantalla 2: Captura de evidencia -->
+<div class="phone capture">
+<div class="notch"></div>
+<div class="status-bar"><span>20:48</span><span>📶 LTE 🔋 76%</span></div>
+<div class="app-header">
+<h1>✓ Confirmar Entrega</h1>
+<p>GR-2003 · Ferretería El Progreso</p>
+</div>
+<div class="capture-content">
+
+<div class="evidence-step">
+<h3>📸 Paso 1: Foto de evidencia</h3>
+<div class="photo-preview">📦</div>
+</div>
+
+<div class="evidence-step">
+<h3>✍️ Paso 2: Firma del receptor</h3>
+<div class="signature-pad">
+<svg width="100%" height="90" viewBox="0 0 280 90">
+<path d="M 20 60 Q 40 30 60 50 T 100 45 Q 130 65 160 40 T 200 50 Q 230 30 260 55" stroke="#1e293b" stroke-width="2" fill="none" stroke-linecap="round"/>
+</svg>
+</div>
+<div class="signature-label">Firmar con el dedo</div>
+</div>
+
+<div class="evidence-step">
+<h3>🆔 Paso 3: DNI del receptor</h3>
+<input type="text" class="dni-input" value="45678901" readonly>
+</div>
+
+<button class="save-btn">💾 GUARDAR ENTREGA</button>
+
+</div>
+</div>
+
+</body></html>
