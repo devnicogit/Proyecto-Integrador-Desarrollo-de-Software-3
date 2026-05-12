@@ -41,3 +41,6 @@ tesis_entregables/figuras_capturas/FM_test_current*
 
 # Tesis: UI dumps de uiautomator (debug)
 tesis_entregables/ui_*.xml
+
+# Tesis: cache de extracción del PDF original de Kevin (regenerable con pdftotext)
+tesis_entregables/.pdf_kevin_extract.txt
