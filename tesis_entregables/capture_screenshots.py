@@ -7,10 +7,10 @@ REQUISITOS:
     python -m playwright install chromium
     + Docker + Backend + Web admin levantados (puerto 3000)
 """
+import subprocess
 import sys
 import time
 from pathlib import Path
-from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
 OUT_DIR = Path(__file__).parent / "figuras_capturas"
 OUT_DIR.mkdir(exist_ok=True)
@@ -18,6 +18,44 @@ WEB = "http://localhost:3000"
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding='utf-8')
+
+
+def ensure_playwright_browser() -> bool:
+    """Asegura que el browser de Playwright esté instalado.
+    Si falta, ejecuta `playwright install chromium` automáticamente.
+    Devuelve True si está OK, False si no se pudo instalar."""
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        print("[ERR] Falta instalar playwright. Ejecutá: pip install playwright")
+        return False
+    try:
+        # Probar lanzar el browser; si falla por executable doesn't exist, instalar
+        with sync_playwright() as p:
+            try:
+                browser = p.chromium.launch(headless=True)
+                browser.close()
+                return True
+            except Exception as e:
+                if "Executable doesn't exist" in str(e) or "playwright install" in str(e):
+                    print("[INFO] Browser de Playwright no instalado; instalando chromium...")
+                    result = subprocess.run(
+                        [sys.executable, "-m", "playwright", "install", "chromium"],
+                        capture_output=False,
+                    )
+                    return result.returncode == 0
+                raise
+    except Exception as e:
+        print(f"[ERR] Playwright no disponible: {e}")
+        return False
+
+
+# Garantizar browser instalado antes de importar lo demás
+if not ensure_playwright_browser():
+    print("[FATAL] No se pudo asegurar el browser de Playwright. Abortando.")
+    sys.exit(1)
+
+from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
 
 def shot(page, filename, full_page=True):

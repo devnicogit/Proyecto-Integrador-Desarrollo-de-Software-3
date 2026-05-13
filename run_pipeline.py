@@ -44,6 +44,8 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.request
+import webbrowser
 import zipfile
 from pathlib import Path
 
@@ -295,6 +297,11 @@ def phase_captures(dry: bool) -> None:
     step("C.3  Capturar panel web admin (F20-F47) con Playwright")
     web_script = TESIS / "capture_screenshots.py"
     if exists(web_script):
+        # Pre-instalar browser de Playwright si falta (idempotente)
+        if not dry:
+            log("INFO", "Asegurando Playwright chromium instalado...")
+            run([sys.executable, "-m", "playwright", "install", "chromium"],
+                check=False, timeout=300)
         run([sys.executable, str(web_script)], dry=dry, check=False, timeout=300)
     else:
         log("INFO", "capture_screenshots.py opcional; salteando")
@@ -393,6 +400,103 @@ def phase_pack(dry: bool) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# H. Dashboard — abrir browser con los KPIs Tesis para visualizar
+# --------------------------------------------------------------------------- #
+
+def _read_kpi_summary() -> dict | None:
+    """Lee los 6 KPIs desde el backend (anónimo si está abierto, o con token mock)."""
+    base = "http://localhost:8081"
+    endpoints = {
+        "iid_pre":  f"{base}/reports/kpi/iid?startDate=2026-01-01&endDate=2026-04-30&testType=pre",
+        "iid_post": f"{base}/reports/kpi/iid?startDate=2026-01-01&endDate=2026-04-30&testType=post",
+        "chr_pre":  f"{base}/reports/kpi/chr?startDate=2026-01-01&endDate=2026-04-30&testType=pre",
+        "chr_post": f"{base}/reports/kpi/chr?startDate=2026-01-01&endDate=2026-04-30&testType=post",
+        "tde_pre":  f"{base}/reports/kpi/tde?startDate=2026-01-01&endDate=2026-04-30&testType=pre",
+        "tde_post": f"{base}/reports/kpi/tde?startDate=2026-01-01&endDate=2026-04-30&testType=post",
+    }
+    result = {}
+    try:
+        for key, url in endpoints.items():
+            req = urllib.request.Request(url, headers={"Authorization": "Bearer mock_ADMIN"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status == 200:
+                    import json
+                    data = json.loads(resp.read().decode("utf-8"))
+                    # asumimos que el endpoint devuelve [{day, total, valid, percent}, ...]
+                    if isinstance(data, list) and data:
+                        totals = sum(d.get("total", 0) for d in data)
+                        valids = sum(d.get("valid", d.get("delivered", d.get("with_evidence", 0))) for d in data)
+                        result[key] = (totals, valids, (valids/totals*100) if totals else 0)
+    except Exception as e:
+        log("WARN", f"No se pudieron leer KPIs del backend: {e}")
+        return None
+    return result if result else None
+
+
+def phase_dashboard(dry: bool) -> None:
+    section("H. DASHBOARD — abrir browser con KPIs Tesis para visualización")
+
+    step("H.1  Verificar que web-admin esté respondiendo")
+    if not dry:
+        try:
+            with urllib.request.urlopen("http://localhost:3000", timeout=5) as resp:
+                if resp.status == 200:
+                    log("OK", "web-admin responde en http://localhost:3000")
+                else:
+                    log("WARN", f"web-admin devolvió {resp.status}")
+        except Exception as e:
+            log("WARN", f"web-admin no responde: {e}")
+            log("INFO", "Levantá web-admin: `docker compose up -d ecoroute-web-admin`")
+            return
+
+    step("H.2  Imprimir resumen de los 3 KPIs (consulta directa al backend)")
+    if not dry:
+        kpis = _read_kpi_summary()
+        if kpis:
+            print()
+            print(f"  {C.BOLD}Resumen KPIs Tesis (pre-test vs post-test):{C.OFF}")
+            print(f"  {'─' * 60}")
+            for ind in ("iid", "chr", "tde"):
+                pre  = kpis.get(f"{ind}_pre")
+                post = kpis.get(f"{ind}_post")
+                if pre and post:
+                    pre_pct, post_pct = pre[2], post[2]
+                    delta = post_pct - pre_pct
+                    name = {"iid":"IID","chr":"CHR","tde":"TDE"}[ind]
+                    print(f"  {C.BOLD}{name}{C.OFF}: pre={pre_pct:>5.1f}%  post={post_pct:>5.1f}%  Δ={C.OK}+{delta:.1f} pp{C.OFF}")
+            print(f"  {'─' * 60}")
+        else:
+            log("INFO", "Backend no devolvió KPIs (puede requerir login real)")
+            print(f"  Valores esperados según análisis estadístico (D.1):")
+            print(f"    {C.BOLD}IID{C.OFF}: pre=60.0%  post=97.9%  Δ={C.OK}+37.9 pp{C.OFF}  (t=14.53, p<0.001)")
+            print(f"    {C.BOLD}CHR{C.OFF}: pre=67.3%  post=93.5%  Δ={C.OK}+26.2 pp{C.OFF}  (t=10.97, p<0.001)")
+            print(f"    {C.BOLD}TDE{C.OFF}: pre=51.3%  post=93.9%  Δ={C.OK}+42.6 pp{C.OFF}  (t=13.80, p<0.001)")
+
+    step("H.3  Abrir el navegador en el dashboard de KPIs Tesis")
+    url = "http://localhost:3000/reports"
+    log("INFO", f"Abriendo: {url}")
+    log("INFO", "Credenciales: admin / admin123  (o dispatcher/dispatcher123)")
+    if not dry:
+        try:
+            webbrowser.open(url, new=2)
+            log("OK", "Navegador abierto. Hacé login con admin/admin123 y andá a la tab 'KPIs de Gestión Administrativa (Tesis)'")
+        except Exception as e:
+            log("WARN", f"No se pudo abrir el navegador: {e}")
+            print(f"     Abrí manualmente: {url}")
+
+    step("H.4  Recordatorio: Tesis_Drive_Integrada_VFinal.docx lista para subir al Drive")
+    out_docx = DOCX / "Tesis_Drive_Integrada_VFinal.docx"
+    if out_docx.exists():
+        print(f"  {C.BOLD}Archivo final:{C.OFF} {out_docx}")
+        print(f"  {C.BOLD}Tamaño:{C.OFF} {out_docx.stat().st_size // 1024 // 1024} MB")
+        print(f"  {C.BOLD}Para subir al Drive:{C.OFF}")
+        print(f"     1. Abrí https://docs.google.com/document/d/1voac3fBjNJLK2rVc-uSCpvO99K5olD8x/edit")
+        print(f"     2. Archivo → Importar → arrastrá '{out_docx.name}' → 'Reemplazar el documento existente'")
+
+    log("OK", "Dashboard fase completa")
+
+
+# --------------------------------------------------------------------------- #
 # G. Git commit + push + tag
 # --------------------------------------------------------------------------- #
 
@@ -436,13 +540,14 @@ def phase_git(dry: bool, no_push: bool) -> None:
 # --------------------------------------------------------------------------- #
 
 PHASES = [
-    ("infra",     "A — Infraestructura Docker",      phase_infra,    True),
-    ("emulator",  "B — Emulador + app móvil",         phase_emulator, True),
-    ("captures",  "C — Capturas end-to-end",          phase_captures, True),
-    ("docs",      "D — Análisis + docs",              phase_docs,     False),
-    ("drive",     "E — Tesis integrada (Drive)",      phase_drive,    False),
-    ("pack",      "F — Pack Total zip",               phase_pack,     False),
-    ("git",       "G — Git commit + push",            phase_git,      False),
+    ("infra",     "A — Infraestructura Docker",      phase_infra,     True),
+    ("emulator",  "B — Emulador + app móvil",         phase_emulator,  True),
+    ("captures",  "C — Capturas end-to-end",          phase_captures,  True),
+    ("docs",      "D — Análisis + docs",              phase_docs,      False),
+    ("drive",     "E — Tesis integrada (Drive)",      phase_drive,     False),
+    ("pack",      "F — Pack Total zip",               phase_pack,      False),
+    ("dashboard", "H — Dashboard KPIs + abrir browser", phase_dashboard, False),
+    ("git",       "G — Git commit + push",            phase_git,       False),
 ]
 
 
