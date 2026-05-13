@@ -1,0 +1,151 @@
+Item,Fecha,N° Guía,Cliente,RUC Cliente,Destino,Estado Reportado,Soporte Recibido,,,
+1,02/03/26,GR-1001,Gamma Cargo S.A.C.,20554896321,Callao,Entregado,Foto WhatsApp,,,
+2,02/03/26,GR-1002,Aceros Dayana S.A.C.,2045...,Ate,Entregado,Sin archivo,,FECHA,
+3,02/03/26,GR-1003,Consorcio Vial Lima,20334259392,Lince,Pendiente,Foto WhatsApp,,02/03/26,6
+4,02/03/26,GR-1004,Ferretería El Progreso,2012...,Comas,Entregado,Sin archivo,,03/03/26,6
+5,02/03/26,GR-1005,Ferretería El Progreso,20123456789,Comas,Entregado,Foto WhatsApp,,04/03/26,6
+6,02/03/26,GR-1006,Consorcio Vial Lima,20334259392,Lince,Entregado,Físico,,05/03/26,6
+7,03/03/26,GR-1007,Almacenes Santa Rosa,2042...,Santa Anita,Entregado,Foto WhatsApp,,06/03/2026,6
+8,03/03/26,GR-1008,Distribuidora Mi Perú,20601245893,Los Olivos,Rechazado,Sin archivo,,07/03/2026,6
+9,03/03/26,GR-1009,Ferretería El Progreso,20123456789,Comas,Entregado,Foto WhatsApp,,08/03/2026,6
+10,03/03/26,GR-1010,Ferretería El Progreso,20123456789,Comas,Entregado,Físico,,09/03/2026,6
+11,03/03/26,GR-1011,Aceros Dayana S.A.C.,20456123789,Ate,Entregado,Foto WhatsApp,,10/03/2026,2
+12,03/03/26,GR-1012,Metal Mecánica El Pino,20128874561,Victoria,Entregado,Sin archivo,,11/03/26,3
+13,04/03/26,GR-1013,Ferretería El Progreso,20123456789,Comas,Entregado,Foto WhatsApp,,12/03/26,3
+14,04/03/26,GR-1014,Gamma Cargo S.A.C.,2055...,Callao,Entregado,Físico,,13/03/26,3
+15,04/03/26,GR-1015,Almacenes Santa Rosa,20422265183,Santa Anita,Pendiente,Sin archivo,,14/03/26,3
+16,04/03/26,GR-1016,Distribuidora Mi Perú,20601245893,Los Olivos,Entregado,Foto WhatsApp,,16/03/26,4
+17,04/03/26,GR-1017,Constructora Graña,2033...,Miraflores,Entregado,Sin archivo,,17/03/26,3
+18,04/03/26,GR-1018,Distribuidora Mi Perú,20601245893,Los Olivos,Entregado,Físico,,18/03/26,3
+19,05/03/26,GR-1019,Almacenes Santa Rosa,20422265183,Santa Anita,Incidencia,Foto WhatsApp,,19/03/26,3
+20,05/03/26,GR-1020,Metal Mecánica El Pino,20128874561,Victoria,Pendiente,Sin archivo,,20/03/26,3
+21,05/03/2026,GR-1021,Inversiones J&M,2076...,Cercado,Entregado,Foto WhatsApp,,21/03/26,2
+22,05/03/2026,GR-1022,Gamma Cargo S.A.C.,2055...,Callao,Entregado,Físico,,23/03/26,3
+23,05/03/2026,GR-1023,Metal Mecánica El Pino,20128874561,Victoria,Entregado,Foto WhatsApp,,24/03/26,3
+24,05/03/2026,GR-1024,Inversiones J&M,2076...,Cercado,Entregado,Foto WhatsApp,,25/03/26,3
+25,06/03/2026,GR-1025,Almacenes Santa Rosa,2042...,Santa Anita,Entregado,Sin archivo,,26/03/26,3
+26,06/03/2026,GR-1026,Aceros Dayana S.A.C.,2045...,Ate,Entregado,Físico,,27/03/26,3
+27,06/03/2026,GR-1027,Constructora Graña,20334259392,Miraflores,No llegó,Foto WhatsApp,,28/03/26,2
+28,06/03/2026,GR-1028,Distribuidora Mi Perú,20601245893,Los Olivos,Retraso,Físico,,30/03/26,2
+29,06/03/2026,GR-1029,Industrial Mega S.A.C.,2046...,V.E.S.,Entregado,Foto WhatsApp,,31/03/26,3
+30,06/03/2026,GR-1030,Sodifer S.A.C.,20519534257,San Borja,Pendiente,Físico,,01/04/26,3
+31,07/03/2026,GR-1031,Distribuidora Mi Perú,20601245893,Los Olivos,Incidencia,Sin archivo,,02/04/26,3
+32,07/03/2026,GR-1032,Aceros Dayana S.A.C.,20456123789,Ate,Entregado,Foto WhatsApp,,03/04/26,3
+33,07/03/2026,GR-1033,Constructora Graña,2033...,Miraflores,Entregado,Físico,,04/04/26,3
+34,07/03/2026,GR-1034,Sodifer S.A.C.,2051...,San Borja,Entregado,Físico,,06/04/26,3
+35,07/03/2026,GR-1035,Gamma Cargo S.A.C.,20554896321,Callao,Entregado,Sin archivo,,07/04/26,3
+36,07/03/2026,GR-1036,Almacenes Santa Rosa,2042...,Santa Anita,Entregado,Foto WhatsApp,,08/04/26,3
+37,08/03/2026,GR-1037,Transportes 77 S.A.,2048...,Huachipa,Entregado,Foto WhatsApp,,09/04/26,3
+38,08/03/2026,GR-1038,Almacenes Santa Rosa,20422265183,Santa Anita,Entregado,Físico,,10/04/26,3
+39,08/03/2026,GR-1039,Gamma Cargo S.A.C.,2055...,Callao,Pendiente,Foto WhatsApp,,11/04/26,3
+40,08/03/2026,GR-1040,Sodifer S.A.C.,20519534257,San Borja,Entregado,Sin archivo,,13/04/26,3
+41,08/03/2026,GR-1041,Inversiones J&M,20768874883,Cercado,Entregado,Foto WhatsApp,,14/04/26,3
+42,08/03/2026,GR-1042,Constructora Graña,20334259392,Miraflores,Entregado,Físico,,15/04/26,3
+43,09/03/2026,GR-1043,Gamma Cargo S.A.C.,20554896321,Callao,Entregado,Físico,,16/04/26,3
+44,09/03/2026,GR-1044,Sodifer S.A.C.,20519534257,San Borja,Entregado,Foto WhatsApp,,17/04/26,3
+45,09/03/2026,GR-1045,Ferretería El Progreso,20123456789,Comas,Incidencia,Sin archivo,,18/04/26,3
+46,09/03/2026,GR-1046,Distribuidora Mi Perú,20601245893,Los Olivos,Entregado,Foto WhatsApp,,,
+47,09/03/2026,GR-1047,Aceros Dayana S.A.C.,20456123789,Ate,Pendiente,Foto WhatsApp,,,
+48,09/03/2026,GR-1048,Transportes 77 S.A.,2048...,Huachipa,No llegó,Foto WhatsApp,,,
+49,10/03/2026,GR-1049,Gamma Cargo S.A.C.,20554896321,Callao,Incidencia,Físico,,,
+50,10/03/26,GR-1050,Aceros Dayana S.A.C.,2045...,Ate,Entregado,Foto WhatsApp,,,
+51,11/03/26,GR-1051,Industrial Mega S.A.C.,20466470434,V.E.S.,Entregado,Foto WhatsApp,,,
+52,11/03/26,GR-1052,Constructora Graña,2033...,Miraflores,Entregado,Físico,,,
+53,11/03/26,GR-1053,Almacenes Santa Rosa,20422265183,Santa Anita,Incidencia,Sin archivo,,,
+54,12/03/26,GR-1054,Ferretería El Progreso,20123456789,Comas,Entregado,Foto WhatsApp,,,
+55,12/03/26,GR-1055,Gamma Cargo S.A.C.,2055...,Callao,Entregado,Físico,,,
+56,12/03/26,GR-1056,Sodifer S.A.C.,20519534257,San Borja,Incidencia,Sin archivo,,,
+57,13/03/26,GR-1057,Inversiones J&M,2076...,Cercado,Pendiente,Foto WhatsApp,,,
+58,13/03/26,GR-1058,Aceros Dayana S.A.C.,20456123789,Ate,Entregado,Foto WhatsApp,,,
+59,13/03/26,GR-1059,Distribuidora Mi Perú,2060...,Los Olivos,Entregado,Sin archivo,,,
+60,14/03/26,GR-1060,Metal Mecánica El Pino,20128874561,La Victoria,Rechazado,Físico,,,
+61,14/03/26,GR-1061,Constructora Graña,20334259392,Miraflores,Entregado,Foto WhatsApp,,,
+62,14/03/26,GR-1062,Industrial Mega S.A.C.,2046...,V.E.S.,Entregado,Sin archivo,,,
+63,16/03/26,GR-1063,Gamma Cargo S.A.C.,20554896321,Callao,Entregado,Foto WhatsApp,,,
+64,16/03/26,GR-1064,Ferretería El Progreso,2012...,Comas,Entregado,Sin archivo,,,
+65,16/03/26,GR-1065,Almacenes Santa Rosa,20422265183,Santa Anita,Incidencia,Foto WhatsApp,,,
+66,16/03/26,GR-1066,Distribuidora Mi Perú,20601245893,Los Olivos,Entregado,Foto WhatsApp,,,
+67,17/03/26,GR-1067,Aceros Dayana S.A.C.,2045...,Ate,Entregado,Físico,,,
+68,17/03/26,GR-1068,Consorcio Vial Lima,20334259392,Lince,Entregado,Foto WhatsApp,,,
+69,17/03/26,GR-1069,Gamma Cargo S.A.C.,20554896321,Callao,Retraso,Sin archivo,,,
+70,18/03/26,GR-1070,Inversiones J&M,2076...,Cercado,Entregado,Foto WhatsApp,,,
+71,18/03/26,GR-1071,Sodifer S.A.C.,20519534257,San Borja,Entregado,Foto WhatsApp,,,
+72,18/03/26,GR-1072,Almacenes Santa Rosa,20422265183,Santa Anita,Pendiente,Físico,,,
+73,19/03/26,GR-1073,Industrial Mega S.A.C.,20466470434,V.E.S.,Entregado,Físico,,,
+74,19/03/26,GR-1074,Metal Mecánica El Pino,2012...,La Victoria,Entregado,Foto WhatsApp,,,
+75,19/03/26,GR-1075,Constructora Graña,20334259392,Miraflores,No llegó,Sin archivo,,,
+76,20/03/26,GR-1076,Distribuidora Mi Perú,20601245893,Los Olivos,Entregado,Foto WhatsApp,,,
+77,20/03/26,GR-1077,Aceros Dayana S.A.C.,2045...,Ate,Entregado,Foto WhatsApp,,,
+78,20/03/26,GR-1078,Gamma Cargo S.A.C.,20554896321,Callao,Incidencia,Sin archivo,,,
+79,21/03/26,GR-1079,Ferretería El Progreso,20123456789,Comas,Pendiente,Foto WhatsApp,,,
+80,21/03/26,GR-1080,Almacenes Santa Rosa,2042...,Santa Anita,Entregado,Físico,,,
+81,23/03/26,GR-1081,Inversiones J&M,20768874883,Cercado,Entregado,Foto WhatsApp,,,
+82,23/03/26,GR-1082,Sodifer S.A.C.,2051...,San Borja,Entregado,Foto WhatsApp,,,
+83,23/03/26,GR-1083,Aceros Dayana S.A.C.,2045...,Ate,Rechazado,Físico,,,
+84,24/03/26,GR-1084,Industrial Mega S.A.C.,20466470434,V.E.S.,Entregado,Foto WhatsApp,,,
+85,24/03/26,GR-1085,Gamma Cargo S.A.C.,2055...,Callao,Entregado,Sin archivo,,,
+86,24/03/26,GR-1086,Constructora Graña,20334259392,Miraflores,Incidencia,Foto WhatsApp,,,
+87,25/03/26,GR-1087,Almacenes Santa Rosa,2042...,Santa Anita,Entregado,Foto WhatsApp,,,
+88,25/03/26,GR-1088,Distribuidora Mi Perú,20601245893,Los Olivos,Entregado,Físico,,,
+89,25/03/26,GR-1089,Ferretería El Progreso,20123456789,Comas,Incidencia,Foto WhatsApp,,,
+90,26/03/26,GR-1090,Sodifer S.A.C.,2051...,San Borja,Pendiente,Físico,,,
+91,26/03/26,GR-1091,Inversiones J&M,20768874883,Cercado,Entregado,Foto WhatsApp,,,
+92,26/03/26,GR-1092,Metal Mecánica El Pino,20128874561,La Victoria,Entregado,Sin archivo,,,
+93,27/03/26,GR-1093,Gamma Cargo S.A.C.,2055...,Callao,Entregado,Foto WhatsApp,,,
+94,27/03/26,GR-1094,Aceros Dayana S.A.C.,2045...,Ate,No llegó,Foto WhatsApp,,,
+95,27/03/26,GR-1095,Almacenes Santa Rosa,20422265183,Santa Anita,Entregado,Físico,,,
+96,28/03/26,GR-1096,Industrial Mega S.A.C.,2046...,V.E.S.,Entregado,Foto WhatsApp,,,
+97,28/03/26,GR-1097,Constructora Graña,20334259392,Miraflores,Incidencia ,Físico,,,
+98,30/03/26,GR-1098,Distribuidora Mi Perú,20601245893,Los Olivos,Retraso,Foto WhatsApp,,,
+99,30/03/26,GR-1099,Ferretería El Progreso,2012...,Comas,Entregado,Sin archivo,,,
+100,31/03/26,GR-1100,Gamma Cargo S.A.C.,20554896321,Callao,Rechazado,Foto WhatsApp,,,
+101,31/03/26,GR-1101,Aceros Dayana S.A.C.,20456123789,Ate,Entregado,Foto WhatsApp,,,
+102,31/03/26,GR-1102,Sodifer S.A.C.,2051...,San Borja,Entregado,Físico,,,
+103,01/04/26,GR-1103,Almacenes Santa Rosa,20422265183,Santa Anita,Incidencia,Sin archivo,,,
+104,01/04/26,GR-1104,Inversiones J&M,20768874883,Cercado,Entregado,Foto WhatsApp,,,
+105,01/04/26,GR-1105,Gamma Cargo S.A.C.,2055...,Callao,Pendiente,Foto WhatsApp,,,
+106,02/04/26,GR-1106,Constructora Graña,20334259392,Miraflores,Entregado,Foto WhatsApp,,,
+107,02/04/26,GR-1107,Industrial Mega S.A.C.,20466470434,V.E.S.,Entregado,Físico,,,
+108,02/04/26,GR-1108,Ferretería El Progreso,2012...,Comas,Incidencia ,Foto WhatsApp,,,
+109,03/04/26,GR-1109,Distribuidora Mi Perú,20601245893,Los Olivos,Retraso,Foto WhatsApp,,,
+110,03/04/26,GR-1110,Metal Mecánica El Pino,20128874561,La Victoria,Entregado,Sin archivo,,,
+111,03/04/26,GR-1111,Aceros Dayana S.A.C.,2045...,Ate,Entregado,Foto WhatsApp,,,
+112,04/04/26,GR-1112,Gamma Cargo S.A.C.,20554896321,Callao,Entregado,Físico,,,
+113,04/04/26,GR-1113,Almacenes Santa Rosa,2042...,Santa Anita,No llegó,Sin archivo,,,
+114,04/04/26,GR-1114,Sodifer S.A.C.,2051...,San Borja,Entregado,Foto WhatsApp,,,
+115,06/04/26,GR-1115,Inversiones J&M,2076...,Cercado,Entregado,Sin archivo,,,
+116,06/04/26,GR-1116,Constructora Graña,20334259392,Miraflores,Pendiente,Foto WhatsApp,,,
+117,06/04/26,GR-1117,Ferretería El Progreso,20123456789,Comas,Entregado,Físico,,,
+118,07/04/26,GR-1118,Industrial Mega S.A.C.,2046...,V.E.S.,Entregado,Foto WhatsApp,,,
+119,07/04/26,GR-1119,Aceros Dayana S.A.C.,20456123789,Ate,Entregado,Sin archivo,,,
+120,07/04/26,GR-1120,Distribuidora Mi Perú,20601245893,Los Olivos,Incidencia,Foto WhatsApp,,,
+121,08/04/26,GR-1121,Gamma Cargo S.A.C.,2055...,Callao,Entregado,Físico,,,
+122,08/04/26,GR-1122,Almacenes Santa Rosa,20422265183,Santa Anita,Entregado,Foto WhatsApp,,,
+123,08/04/26,GR-1123,Sodifer S.A.C.,2051....,San Borja,Rechazado,Físico,,,
+124,09/04/26,GR-1124,Inversiones J&M,20768874883,Cercado,Entregado,Foto WhatsApp,,,
+125,09/04/26,GR-1125,Metal Mecánica El Pino,2012...,La Victoria,Entregado,Sin archivo,,,
+126,09/04/26,GR-1126,Constructora Graña,20334259392,Miraflores,Incidencia ,Foto WhatsApp,,,
+127,10/04/26,GR-1127,Industrial Mega S.A.C.,20466470434,V.E.S.,Pendiente,Foto WhatsApp,,,
+128,10/04/26,GR-1128,Ferretería El Progreso,20123456789,Comas,Entregado,Físico,,,
+129,10/04/26,GR-1129,Aceros Dayana S.A.C.,2045...,Ate,Entregado,Sin archivo,,,
+130,11/04/26,GR-1130,Gamma Cargo S.A.C.,20554896321,Callao,Entregado,Foto WhatsApp,,,
+131,11/04/26,GR-1131,Almacenes Santa Rosa,2042...,Santa Anita,Incidencia,Sin archivo,,,
+132,11/04/26,GR-1132,Sodifer S.A.C.,20519534257,San Borja,Entregado,Físico,,,
+133,13/04/26,GR-1133,Inversiones J&M,2076...,Cercado,Entregado,Foto WhatsApp,,,
+134,13/04/26,GR-1134,Constructora Graña,2033...,Miraflores,Entregado,Sin archivo,,,
+135,13/04/26,GR-1135,Industrial Mega S.A.C.,20466470434,V.E.S.,No llegó,Foto WhatsApp,,,
+136,14/04/26,GR-1136,Ferretería El Progreso,20123456789,Comas,Entregado,Físico,,,
+137,14/04/26,GR-1137,Distribuidora Mi Perú,2060...,Los Olivos,Entregado,Foto WhatsApp,,,
+138,14/04/26,GR-1138,Aceros Dayana S.A.C.,20456123789,Ate,Incidencia,Físico,,,
+139,15/04/26,GR-1139,Gamma Cargo S.A.C.,20554896321,Callao,Retraso,Foto WhatsApp,,,
+140,15/04/26,GR-1140,Almacenes Santa Rosa,2042...,Santa Anita,Entregado,Sin archivo,,,
+141,15/04/26,GR-1141,Sodifer S.A.C.,20519534257,San Borja,Entregado,Foto WhatsApp,,,
+142,16/04/26,GR-1142,Inversiones J&M,20768874883,Cercado,Pendiente,Foto WhatsApp,,,
+143,16/04/26,GR-1143,Metal Mecánica El Pino,2012...,La Victoria,Entregado,Físico,,,
+144,16/04/26,GR-1144,Constructora Graña,2033...,Miraflores,Entregado,Sin archivo,,,
+145,17/04/26,GR-1145,Industrial Mega S.A.C.,2046...,V.E.S.,Entregado,Foto WhatsApp,,,
+146,17/04/26,GR-1146,Ferretería El Progreso,2012...,Comas,No llegó,Foto WhatsApp,,,
+147,17/04/26,GR-1147,Aceros Dayana S.A.C.,20456123789,Ate,Entregado,Físico,,,
+148,18/04/26,GR-1148,Gamma Cargo S.A.C.,2055...,Callao,Entregado,Foto WhatsApp,,,
+149,18/04/26,GR-1149,Almacenes Santa Rosa,20422265183,Santa Anita,Incidencia,Sin archivo,,,
+150,18/04/26,GR-1150,Sodifer S.A.C.,20519534257,San Borja,Entregado,Foto WhatsApp,,,

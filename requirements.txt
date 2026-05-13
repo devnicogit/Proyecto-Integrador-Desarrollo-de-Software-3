@@ -1,0 +1,23 @@
+# EcoRoute / Tesis MICOTRANS — Python dependencies
+#
+# Instalar con:
+#   pip install -r requirements.txt
+#
+# El orquestador (run_pipeline.py) detecta dependencias faltantes en la Fase 0
+# Preflight y aborta con instrucciones claras. Este archivo es la versión
+# completa para una PC nueva.
+
+# Docs y entregables
+python-docx>=1.1.0    # convert_md_to_docx.py, build_anexo_*.py, build_tesis_*.py
+Pillow>=10.0.0        # safe_capture.py (thumbnails ≤1500 px anti-2000 px)
+reportlab>=4.0.0      # fichas KPI PDF (Anexo 2)
+
+# Capturas web
+playwright>=1.40.0    # capture_screenshots.py; el browser se auto-instala en C.3
+
+# Análisis estadístico
+# scipy es opcional (analisis_estadistico.py degrada a aproximaciones internas si falta)
+# scipy>=1.11.0       # descomentá si querés precisión exacta en Shapiro-Wilk y t-Student
+
+# Utilidades
+requests>=2.31.0      # HTTP a backend y Drive

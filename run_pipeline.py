@@ -68,7 +68,9 @@ CAPS  = TESIS / "figuras_capturas"
 
 ADB_PATH        = Path(os.environ.get("ANDROID_HOME", r"C:\Users\USUARIO\AppData\Local\Android\Sdk")) / "platform-tools" / "adb.exe"
 EMULATOR_PATH   = Path(os.environ.get("ANDROID_HOME", r"C:\Users\USUARIO\AppData\Local\Android\Sdk")) / "emulator" / "emulator.exe"
-AVD_NAME        = "Pixel_9_Pro_XL"
+# AVD a usar: ECOROUTE_AVD env var (override) > Pixel_9_Pro_XL > primer Pixel* > primer disponible
+AVD_NAME_PREFERRED = os.environ.get("ECOROUTE_AVD", "Pixel_9_Pro_XL")
+AVD_NAME        = AVD_NAME_PREFERRED  # se reasigna en _resolve_avd() si hace falta
 APP_PACKAGE     = "com.example.ecoroute_driver_app"
 DRIVE_DOC_ID    = "1voac3fBjNJLK2rVc-uSCpvO99K5olD8x"
 DRIVE_DOC_CACHE = Path(r"C:\tmp\kevin_drive_current.docx")
@@ -187,8 +189,16 @@ def _check_python_deps() -> tuple[bool, list[str]]:
     return len(missing) == 0, missing
 
 
-def _check_avd_exists() -> tuple[bool, str]:
-    """¿Existe el AVD Pixel_9_Pro_XL?"""
+def _resolve_avd() -> tuple[bool, str]:
+    """Resuelve qué AVD usar y lo guarda en AVD_NAME global.
+
+    Orden de preferencia:
+      1. ECOROUTE_AVD env var (si está definida)
+      2. AVD_NAME_PREFERRED (Pixel_9_Pro_XL por default)
+      3. Primer AVD cuyo nombre empiece con "Pixel"
+      4. Primer AVD disponible
+    """
+    global AVD_NAME
     if not EMULATOR_PATH.exists():
         return False, f"emulator.exe no existe en {EMULATOR_PATH}"
     try:
@@ -196,10 +206,21 @@ def _check_avd_exists() -> tuple[bool, str]:
             [str(EMULATOR_PATH), "-list-avds"],
             capture_output=True, text=True, timeout=15,
         )
-        if AVD_NAME in result.stdout:
-            return True, f"AVD '{AVD_NAME}' disponible"
         avds = [a for a in result.stdout.split() if a]
-        return False, f"AVD '{AVD_NAME}' no existe. AVDs disponibles: {avds or '(ninguno)'}"
+        if not avds:
+            return False, "No hay AVDs creados (crear uno en Android Studio → Device Manager)"
+        # 1) Preferido (env o default)
+        if AVD_NAME_PREFERRED in avds:
+            AVD_NAME = AVD_NAME_PREFERRED
+            return True, f"AVD '{AVD_NAME}' disponible (preferido)"
+        # 2) Primer Pixel
+        for a in avds:
+            if a.lower().startswith("pixel"):
+                AVD_NAME = a
+                return True, f"AVD '{AVD_NAME}' (fallback Pixel*; preferido '{AVD_NAME_PREFERRED}' no existe)"
+        # 3) Primer disponible
+        AVD_NAME = avds[0]
+        return True, f"AVD '{AVD_NAME}' (último fallback; mejor crear 'Pixel_9_Pro_XL' en Device Manager)"
     except Exception as e:
         return False, f"Error listando AVDs: {e}"
 
@@ -226,10 +247,25 @@ def phase_preflight(dry: bool, skip_emulator: bool = False, skip_drive: bool = F
     step("0.2  Dependencias Python (docx, Pillow, playwright)")
     ok, missing = _check_python_deps()
     msg = "Todas instaladas" if ok else f"Faltan: {', '.join(missing)}"
-    checks.append(("Python deps", ok, msg, True))
-    log("OK" if ok else "ERR", msg)
+    log("OK" if ok else "WARN", msg)
     if not ok:
-        print(f"     {C.WARN}→ Solución:{C.OFF} pip install {' '.join(missing)}")
+        # Auto-install desde requirements.txt si existe; sino paquete a paquete
+        req_file = ROOT / "requirements.txt"
+        log("INFO", "Intentando auto-instalar las deps faltantes...")
+        if req_file.exists():
+            run([sys.executable, "-m", "pip", "install", "-r", str(req_file)],
+                check=False, timeout=300)
+        else:
+            run([sys.executable, "-m", "pip", "install", *missing],
+                check=False, timeout=300)
+        # Re-check
+        ok, missing = _check_python_deps()
+        if ok:
+            log("OK", "Deps instaladas correctamente")
+        else:
+            log("ERR", f"Aún faltan: {', '.join(missing)}")
+            print(f"     {C.WARN}→ Solución manual:{C.OFF} pip install {' '.join(missing)}")
+    checks.append(("Python deps", ok, msg, True))
 
     step("0.3  Java JDK")
     java = has_tool("java")
@@ -248,11 +284,12 @@ def phase_preflight(dry: bool, skip_emulator: bool = False, skip_drive: bool = F
     if skip_emulator:
         log("INFO", "Saltando check de AVD (--skip-emulator)")
     else:
-        ok, msg = _check_avd_exists()
-        checks.append(("AVD Pixel_9_Pro_XL", ok, msg, False))
+        ok, msg = _resolve_avd()
+        checks.append(("AVD", ok, msg, False))
         log("OK" if ok else "WARN", msg)
         if not ok:
-            print(f"     {C.WARN}→ Solución:{C.OFF} crear AVD desde Android Studio → Device Manager → 'Pixel 9 Pro XL'")
+            print(f"     {C.WARN}→ Solución:{C.OFF} crear AVD en Android Studio → Device Manager → 'Pixel 9 Pro XL' API 36")
+            print(f"     {C.WARN}→ O setear:{C.OFF} $env:ECOROUTE_AVD = 'NombreDeTuAVD' antes de correr el pipeline")
 
     step("0.6  pdftotext (para Fase E descarga PDF de Kevin)")
     if skip_drive:

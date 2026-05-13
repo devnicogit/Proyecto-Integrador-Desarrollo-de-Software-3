@@ -24,6 +24,7 @@ USO:
     python analisis_estadistico.py [--csv-pretest PATH] [--csv-utaut PATH]
 """
 import csv
+import os
 import sys
 import argparse
 import random
@@ -227,9 +228,34 @@ def print_describe(d):
 # MAIN
 # ============================================================
 
+def _find_pretest_csv() -> str:
+    """Busca el CSV pre-test en múltiples ubicaciones (PC nueva-friendly).
+
+    Orden:
+      1. Variable de entorno ECOROUTE_PRETEST_CSV
+      2. tesis_entregables/datos_pretest/REGISTROS_MICOTRANS.csv (versionado, ideal)
+      3. tesis_entregables/REGISTROS SOLICITADOS-MICOTRANS S.A.C - Hoja 1.csv (versionado)
+      4. ~/Downloads/REGISTROS SOLICITADOS-MICOTRANS S.A.C - Hoja 1.csv (legado)
+      5. C:/Users/USUARIO/Downloads/... (legado de mi máquina dev)
+    """
+    here = Path(__file__).parent
+    candidates = [
+        os.environ.get('ECOROUTE_PRETEST_CSV'),
+        str(here / 'datos_pretest' / 'REGISTROS_MICOTRANS.csv'),
+        str(here / 'REGISTROS SOLICITADOS-MICOTRANS S.A.C - Hoja 1.csv'),
+        str(Path.home() / 'Downloads' / 'REGISTROS SOLICITADOS-MICOTRANS S.A.C - Hoja 1.csv'),
+        'C:/Users/USUARIO/Downloads/REGISTROS SOLICITADOS-MICOTRANS S.A.C - Hoja 1.csv',
+    ]
+    for c in candidates:
+        if c and Path(c).is_file():
+            return c
+    # Fallback: el primero (causará FileNotFoundError con mensaje claro)
+    return candidates[-1]
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--csv-pretest', default='C:/Users/USUARIO/Downloads/REGISTROS SOLICITADOS-MICOTRANS S.A.C - Hoja 1.csv')
+    parser.add_argument('--csv-pretest', default=_find_pretest_csv())
     parser.add_argument('--csv-utaut', default=str(Path(__file__).parent / 'Anexo_2_Cuestionario_Respuestas.csv'))
     args = parser.parse_args()
 
