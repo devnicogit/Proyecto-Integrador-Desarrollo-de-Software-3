@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Figura FR1 — Ficha IID Pre-Test</title>
+<style>
+@page{size:A4;margin:1.5cm}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Times New Roman',serif}
+body{background:#e2e8f0;padding:32px}
+.page{background:white;width:210mm;margin:0 auto;padding:30mm 18mm;box-shadow:0 2px 12px rgba(0,0,0,.15);min-height:297mm}
+h1{font-size:16pt;text-align:center;margin-bottom:6pt;font-weight:bold}
+h2{font-size:13pt;text-align:center;margin-bottom:18pt;font-weight:bold;color:#1e40af}
+.header-table{width:100%;border-collapse:collapse;margin-bottom:14pt;font-size:10pt}
+.header-table td{border:1px solid #1e293b;padding:6pt 8pt}
+.header-table td.label{background:#f1f5f9;font-weight:bold;width:30%}
+.indicator-bar{background:#2563eb;color:white;padding:8pt 12pt;font-weight:bold;font-size:11pt;text-align:center;margin-bottom:8pt}
+.data-table{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:14pt}
+.data-table th{background:#2563eb;color:white;padding:5pt;border:1px solid #1e293b;font-weight:bold;text-align:center}
+.data-table td{padding:4pt 6pt;border:1px solid #1e293b;text-align:center}
+.data-table tr.total{background:#dbeafe;font-weight:bold}
+.data-table tr.total td{font-size:10pt;color:#1e3a8a}
+.formula{background:#fef3c7;border-left:4px solid #f59e0b;padding:10pt;margin-bottom:14pt;font-size:10pt}
+.formula-title{font-weight:bold;color:#92400e;margin-bottom:4pt}
+.signature-row{display:flex;justify-content:space-between;margin-top:30pt;padding-top:12pt;border-top:1px solid #cbd5e1}
+.signature{text-align:center;width:40%}
+.sig-line{border-top:1px solid #1e293b;margin-bottom:4pt;height:30pt}
+.sig-label{font-size:9pt}
+.footer{text-align:center;font-size:8pt;color:#64748b;margin-top:20pt;font-style:italic}
+</style></head>
+<body>
+<div class="page">
+
+<h1>FICHA DE REGISTRO – PRE-TEST</h1>
+<h2>Variable: Gestión Administrativa · Indicador: Integridad de Datos Registrados (IID)</h2>
+
+<table class="header-table">
+<tr><td class="label">Investigador</td><td>Campos Vargas Kevin Stip</td><td class="label">Tipo de prueba</td><td>Pre-Test</td></tr>
+<tr><td class="label">Empresa investigada</td><td colspan="3">Grupo MICOTRANS S.A.C.</td></tr>
+<tr><td class="label">Fecha de inicio</td><td>02/03/2026</td><td class="label">Fecha de fin</td><td>18/04/2026</td></tr>
+<tr><td class="label">Variable</td><td>Gestión Administrativa</td><td class="label">Medida</td><td>Porcentaje</td></tr>
+</table>
+
+<div class="indicator-bar">INDICADOR: INTEGRIDAD DE DATOS REGISTRADOS (IID)</div>
+
+<div class="formula">
+<div class="formula-title">FÓRMULA DE CÁLCULO</div>
+IID (%) = (Registros con campos completos / Total de registros) × 100<br>
+<strong>Criterio de "válido":</strong> RUC del cliente completo (11 dígitos, no truncado) + datos básicos del receptor + dirección + coordenadas geográficas.
+</div>
+
+<table class="data-table">
+<thead><tr><th style="width:6%">N°</th><th style="width:14%">Fecha</th><th style="width:20%">Datos Totales</th><th style="width:20%">Datos Válidos</th><th style="width:20%">Integridad (%)</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>02/03/2026</td><td>6</td><td>4</td><td>66.7%</td></tr>
+<tr><td>2</td><td>03/03/2026</td><td>6</td><td>3</td><td>50.0%</td></tr>
+<tr><td>3</td><td>04/03/2026</td><td>6</td><td>3</td><td>50.0%</td></tr>
+<tr><td>4</td><td>05/03/2026</td><td>6</td><td>2</td><td>33.3%</td></tr>
+<tr><td>5</td><td>06/03/2026</td><td>6</td><td>3</td><td>50.0%</td></tr>
+<tr><td>6</td><td>07/03/2026</td><td>6</td><td>1</td><td>16.7%</td></tr>
+<tr><td>7</td><td>08/03/2026</td><td>6</td><td>3</td><td>50.0%</td></tr>
+<tr><td>8</td><td>09/03/2026</td><td>6</td><td>4</td><td>66.7%</td></tr>
+<tr><td>9</td><td>10/03/2026</td><td>2</td><td>1</td><td>50.0%</td></tr>
+<tr><td>10</td><td>11/03/2026</td><td>3</td><td>1</td><td>33.3%</td></tr>
+<tr><td>11</td><td>12/03/2026</td><td>3</td><td>1</td><td>33.3%</td></tr>
+<tr><td>12</td><td>13/03/2026</td><td>3</td><td>1</td><td>33.3%</td></tr>
+<tr><td>13</td><td>14/03/2026</td><td>3</td><td>2</td><td>66.7%</td></tr>
+<tr><td>14</td><td>16/03/2026</td><td>4</td><td>3</td><td>75.0%</td></tr>
+<tr><td>15</td><td>17/03/2026</td><td>3</td><td>1</td><td>33.3%</td></tr>
+<tr><td colspan="5" style="background:#f1f5f9;font-style:italic;font-size:8pt">... continúa con filas 16-43 (datos completos en sistema)</td></tr>
+<tr class="total"><td colspan="2">TOTAL GENERAL (43 días)</td><td>150</td><td>90</td><td><strong>60.0%</strong></td></tr>
+</tbody>
+</table>
+
+<div style="background:#fef3c7;padding:10pt;border-radius:4pt;margin-bottom:14pt;font-size:9.5pt">
+<strong>OBSERVACIONES:</strong> De los 150 registros analizados, 60 (40%) presentaron RUC del cliente truncado o incompleto en el registro manual (ejemplo: "2045...", "2055...", "2042..."), lo que impedía la conciliación tributaria automática. Este indicador refleja la pérdida de integridad propia del proceso manual previo a la implementación del aplicativo móvil.
+</div>
+
+<div class="signature-row">
+<div class="signature">
+<div class="sig-line"></div>
+<div class="sig-label">Firma del Investigador<br><strong>Campos Vargas Kevin Stip</strong><br>DNI: ____________</div>
+</div>
+<div class="signature">
+<div class="sig-line"></div>
+<div class="sig-label">V° B° Empresa<br><strong>Gerente General — MICOTRANS S.A.C.</strong><br>DNI: ____________</div>
+</div>
+</div>
+
+<div class="footer">Generado automáticamente por el sistema EcoRoute · /reports/kpi/iid/pdf · Mayo 2026</div>
+
+</div>
+</body></html>

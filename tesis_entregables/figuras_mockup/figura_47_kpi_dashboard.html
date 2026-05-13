@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Figura 47 — Dashboard KPIs Tesis (Pre vs Post)</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: #f1f5f9; color: #1e293b; padding: 24px; }
+    .container { max-width: 1280px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e2e8f0; }
+    .header h1 { font-size: 24px; color: #2563eb; display: flex; align-items: center; gap: 10px; }
+    .icon { width: 28px; height: 28px; }
+    .updated { font-size: 14px; color: #64748b; }
+    .tabs { display: flex; gap: 8px; border-bottom: 1px solid #e2e8f0; margin-bottom: 24px; }
+    .tab { padding: 10px 20px; font-weight: 600; font-size: 14px; cursor: pointer; border-bottom: 3px solid #2563eb; color: #2563eb; }
+    .tab.inactive { color: #64748b; border-bottom: 3px solid transparent; }
+    .phase-toggle { background: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 24px; display: flex; align-items: center; gap: 16px; }
+    .phase-toggle strong { color: #1e293b; font-weight: 600; }
+    .toggle-buttons { display: flex; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .toggle-buttons button { padding: 8px 16px; border: none; font-weight: 600; font-size: 14px; cursor: pointer; }
+    .toggle-buttons .active { background: #16a34a; color: white; }
+    .toggle-buttons .inactive { background: white; color: #1e293b; }
+    .period { font-size: 14px; color: #64748b; }
+    .period strong { color: #1e293b; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
+    .kpi-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; border-top: 4px solid; }
+    .kpi-card.iid { border-top-color: #2563eb; }
+    .kpi-card.chr { border-top-color: #16a34a; }
+    .kpi-card.tde { border-top-color: #f59e0b; }
+    .kpi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .kpi-title-block { flex: 1; }
+    .kpi-title { font-size: 18px; font-weight: 700; }
+    .kpi-subtitle { font-size: 12px; color: #64748b; margin-top: 4px; }
+    .kpi-value { font-size: 36px; font-weight: 800; }
+    .iid .kpi-value, .iid .kpi-title { color: #2563eb; }
+    .chr .kpi-value, .chr .kpi-title { color: #16a34a; }
+    .tde .kpi-value, .tde .kpi-title { color: #f59e0b; }
+    .kpi-meta { display: flex; justify-content: space-between; font-size: 12px; color: #64748b; margin-bottom: 12px; }
+    .kpi-meta strong { color: #1e293b; }
+    .kpi-buttons { display: flex; gap: 8px; }
+    .btn { flex: 1; padding: 8px; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-secondary { background: #f1f5f9; color: #1e293b; }
+    .btn-primary-iid { background: #2563eb; color: white; }
+    .btn-primary-chr { background: #16a34a; color: white; }
+    .btn-primary-tde { background: #f59e0b; color: white; }
+    .chart-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+    .chart-card h3 { font-size: 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .chart { display: flex; gap: 32px; padding: 20px 8px; height: 280px; align-items: flex-end; border-bottom: 2px solid #e2e8f0; position: relative; margin-bottom: 16px; }
+    .y-axis { position: absolute; left: 0; top: 0; bottom: 0; width: 40px; display: flex; flex-direction: column; justify-content: space-between; font-size: 11px; color: #94a3b8; }
+    .y-axis span { transform: translateY(-50%); }
+    .y-axis::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; border-right: 1px solid #e2e8f0; }
+    .bar-group { flex: 1; display: flex; gap: 12px; align-items: flex-end; padding: 0 16px; position: relative; }
+    .bar-group::after { content: attr(data-label); position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%); font-weight: 700; font-size: 14px; color: #1e293b; }
+    .bar { flex: 1; border-radius: 6px 6px 0 0; position: relative; min-height: 8px; }
+    .bar.pre { background: rgba(239, 68, 68, 0.6); border: 1px solid #ef4444; }
+    .bar.post { background: rgba(22, 163, 74, 0.6); border: 1px solid #16a34a; }
+    .bar-value { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: #1e293b; white-space: nowrap; }
+    .legend { display: flex; justify-content: center; gap: 24px; padding: 16px 0; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .legend-color { width: 16px; height: 16px; border-radius: 4px; }
+    .summary-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
+    .summary-table th { background: #f8fafc; padding: 10px 16px; text-align: left; border-bottom: 1px solid #e2e8f0; font-weight: 700; }
+    .summary-table td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; }
+    .summary-table .center { text-align: center; }
+    .pre-cell { color: #ef4444; font-weight: 600; }
+    .post-cell { color: #16a34a; font-weight: 700; }
+    .delta-cell { color: #2563eb; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>📊 Reportes y Analítica</h1>
+        <span class="updated">Actualizado: 31 mayo 2026, 18:42</span>
+    </div>
+
+    <div class="tabs">
+        <div class="tab">📊 KPIs de Gestión Administrativa (Tesis)</div>
+        <div class="tab inactive">📈 Reportes Operativos</div>
+    </div>
+
+    <div class="phase-toggle">
+        <strong>Fase de medición:</strong>
+        <div class="toggle-buttons">
+            <button class="inactive">Pre-Test (manual)</button>
+            <button class="active">Post-Test (con sistema)</button>
+        </div>
+        <span class="period">Periodo: <strong>2026-04-20</strong> a <strong>2026-05-31</strong></span>
+    </div>
+
+    <div class="kpi-grid">
+        <div class="kpi-card iid">
+            <div class="kpi-header">
+                <div class="kpi-title-block">
+                    <div class="kpi-title">📋 IID</div>
+                    <div class="kpi-subtitle">Integridad de Datos Registrados</div>
+                </div>
+                <div class="kpi-value">97.9%</div>
+            </div>
+            <div class="kpi-meta">
+                <span>Válidos: <strong>183</strong></span>
+                <span>Total: <strong>186</strong></span>
+            </div>
+            <div class="kpi-buttons">
+                <button class="btn btn-secondary">⬇ CSV</button>
+                <button class="btn btn-primary-iid">📄 PDF Ficha</button>
+            </div>
+        </div>
+
+        <div class="kpi-card chr">
+            <div class="kpi-header">
+                <div class="kpi-title-block">
+                    <div class="kpi-title">✅ CHR</div>
+                    <div class="kpi-subtitle">Cumplimiento de Hoja de Ruta</div>
+                </div>
+                <div class="kpi-value">93.5%</div>
+            </div>
+            <div class="kpi-meta">
+                <span>Válidos: <strong>174</strong></span>
+                <span>Total: <strong>186</strong></span>
+            </div>
+            <div class="kpi-buttons">
+                <button class="btn btn-secondary">⬇ CSV</button>
+                <button class="btn btn-primary-chr">📄 PDF Ficha</button>
+            </div>
+        </div>
+
+        <div class="kpi-card tde">
+            <div class="kpi-header">
+                <div class="kpi-title-block">
+                    <div class="kpi-title">⚡ TDE</div>
+                    <div class="kpi-subtitle">Tasa de Disponibilidad de Evidencias</div>
+                </div>
+                <div class="kpi-value">93.9%</div>
+            </div>
+            <div class="kpi-meta">
+                <span>Válidos: <strong>175</strong></span>
+                <span>Total: <strong>186</strong></span>
+            </div>
+            <div class="kpi-buttons">
+                <button class="btn btn-secondary">⬇ CSV</button>
+                <button class="btn btn-primary-tde">📄 PDF Ficha</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h3>📈 Comparativo Pre-Test vs Post-Test</h3>
+        <div class="chart">
+            <div class="y-axis">
+                <span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span>
+            </div>
+            <div class="bar-group" data-label="IID" style="margin-left: 48px;">
+                <div class="bar pre" style="height: 58.7%;"><div class="bar-value">58.7%</div></div>
+                <div class="bar post" style="height: 97.9%;"><div class="bar-value">97.9%</div></div>
+            </div>
+            <div class="bar-group" data-label="CHR">
+                <div class="bar pre" style="height: 65.7%;"><div class="bar-value">65.7%</div></div>
+                <div class="bar post" style="height: 93.5%;"><div class="bar-value">93.5%</div></div>
+            </div>
+            <div class="bar-group" data-label="TDE">
+                <div class="bar pre" style="height: 51.7%;"><div class="bar-value">51.7%</div></div>
+                <div class="bar post" style="height: 93.9%;"><div class="bar-value">93.9%</div></div>
+            </div>
+        </div>
+        <div class="legend">
+            <div class="legend-item"><span class="legend-color" style="background: rgba(239, 68, 68, 0.6); border:1px solid #ef4444;"></span> Pre-Test (manual)</div>
+            <div class="legend-item"><span class="legend-color" style="background: rgba(22, 163, 74, 0.6); border:1px solid #16a34a;"></span> Post-Test (con sistema)</div>
+        </div>
+        <table class="summary-table">
+            <thead><tr><th>Indicador</th><th class="center">Pre-Test</th><th class="center">Post-Test</th><th class="center">Mejora (Δ)</th></tr></thead>
+            <tbody>
+                <tr><td><strong>IID</strong></td><td class="center pre-cell">58.7%</td><td class="center post-cell">97.9%</td><td class="center delta-cell">+39.2 pp</td></tr>
+                <tr><td><strong>CHR</strong></td><td class="center pre-cell">65.7%</td><td class="center post-cell">93.5%</td><td class="center delta-cell">+27.8 pp</td></tr>
+                <tr><td><strong>TDE</strong></td><td class="center pre-cell">51.7%</td><td class="center post-cell">93.9%</td><td class="center delta-cell">+42.1 pp</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div style="text-align: center; padding: 12px; font-size: 12px; color: #94a3b8;">
+        Grupo Micotrans S.A.C. — Sistema EcoRoute v1.0 — Generado por el Panel Administrativo
+    </div>
+</div>
+
+</body>
+</html>

@@ -33,3 +33,53 @@ export const getRouteEfficiency = async (startDate?: string, endDate?: string): 
   const response = await api.get(`/reports/route-efficiency?${params.toString()}`);
   return response.data;
 };
+
+// ============================================================
+// KPIs de Tesis: IID, CHR, TDE
+// ============================================================
+
+export type KpiCode = 'iid' | 'chr' | 'tde';
+
+export interface KpiRow {
+  index: number;
+  date: string;        // ISO LocalDate
+  total: number;
+  valid: number;
+  percentage: number;
+}
+
+export interface KpiResponse {
+  indicator: 'IID' | 'CHR' | 'TDE';
+  indicatorName: string;
+  startDate: string;
+  endDate: string;
+  rows: KpiRow[];
+  totals: { total: number; valid: number; percentage: number };
+}
+
+export const getKpi = async (code: KpiCode, startDate: string, endDate: string): Promise<KpiResponse> => {
+  const params = new URLSearchParams({ startDate, endDate });
+  const response = await api.get<KpiResponse>(`/reports/kpi/${code}?${params.toString()}`);
+  return response.data;
+};
+
+export const downloadKpiFicha = async (
+  code: KpiCode,
+  startDate: string,
+  endDate: string,
+  format: 'csv' | 'pdf',
+  testType: 'Pre-Test' | 'Post-Test' = 'Post-Test'
+): Promise<void> => {
+  const params = new URLSearchParams({ startDate, endDate, testType });
+  const response = await api.get(`/reports/kpi/${code}/${format}?${params.toString()}`, {
+    responseType: 'blob',
+  });
+  const url = window.URL.createObjectURL(response.data as Blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `ficha_${code}_${testType.toLowerCase()}.${format}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+};

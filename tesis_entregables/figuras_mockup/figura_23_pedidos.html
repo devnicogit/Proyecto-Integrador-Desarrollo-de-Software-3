@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><title>Figura 23 — Gestión de Pedidos</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',sans-serif}
+body{background:#f1f5f9;color:#1e293b}
+.app{display:flex;min-height:100vh}
+.sidebar{width:240px;background:#1e293b;color:#cbd5e1;padding:24px 0;flex-shrink:0}
+.sidebar .brand{padding:0 24px 24px;border-bottom:1px solid #334155;margin-bottom:16px}
+.sidebar .brand h2{color:#fff;font-size:20px;display:flex;align-items:center;gap:8px}
+.menu-item{padding:12px 24px;display:flex;align-items:center;gap:12px;font-size:14px;cursor:pointer}
+.menu-item.active{background:#2563eb;color:white;font-weight:600;border-left:4px solid #60a5fa}
+.menu-item:hover{background:#334155}
+.content{flex:1;padding:28px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.header h1{font-size:24px;color:#2563eb;display:flex;align-items:center;gap:10px}
+.btn{padding:10px 18px;background:#2563eb;color:white;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn-secondary{background:#f1f5f9;color:#1e293b;border:1px solid #e2e8f0}
+.filters{background:white;padding:16px;border-radius:8px;margin-bottom:20px;display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
+.filter{flex:1;min-width:160px}
+.filter label{display:block;font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:6px}
+.filter input,.filter select{width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px}
+.table-card{background:white;border-radius:12px;overflow:hidden}
+.table-header{padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
+table{width:100%;border-collapse:collapse}
+th{background:#f8fafc;padding:12px 16px;text-align:left;font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px}
+td{padding:12px 16px;border-bottom:1px solid #f1f5f9;font-size:13px}
+tr:hover{background:#f8fafc}
+.badge{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-delivered{background:#dcfce7;color:#166534}
+.badge-pending{background:#fef3c7;color:#92400e}
+.badge-transit{background:#dbeafe;color:#1e40af}
+.badge-failed{background:#fee2e2;color:#991b1b}
+.tracking{color:#2563eb;font-weight:600}
+.pagination{padding:14px 20px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:#64748b}
+.page-btns{display:flex;gap:4px}
+.page-btn{padding:4px 10px;border:1px solid #e2e8f0;background:white;border-radius:4px;cursor:pointer}
+.page-btn.active{background:#2563eb;color:white;border-color:#2563eb}
+</style></head>
+<body>
+<div class="app">
+<div class="sidebar">
+<div class="brand"><h2>🚚 EcoRoute</h2></div>
+<div class="menu-item">📊 Dashboard</div>
+<div class="menu-item active">📦 Pedidos</div>
+<div class="menu-item">🛣️ Rutas</div>
+<div class="menu-item">👤 Conductores</div>
+<div class="menu-item">🚐 Vehículos</div>
+<div class="menu-item">🛒 Compras</div>
+<div class="menu-item">📈 Reportes</div>
+<div class="menu-item">👥 Usuarios</div>
+</div>
+<div class="content">
+<div class="header">
+<h1>📦 Gestión de Pedidos</h1>
+<button class="btn">➕ Nuevo Pedido</button>
+</div>
+
+<div class="filters">
+<div class="filter"><label>BUSCAR</label><input type="text" placeholder="N° Guía, cliente..." value="GR-1"></div>
+<div class="filter"><label>ESTADO</label><select><option>Todos</option><option>Entregado</option><option>En tránsito</option></select></div>
+<div class="filter"><label>DESDE</label><input type="date" value="2026-03-02"></div>
+<div class="filter"><label>HASTA</label><input type="date" value="2026-04-18"></div>
+<button class="btn btn-secondary">🔍 Filtrar</button>
+</div>
+
+<div class="table-card">
+<div class="table-header"><strong>Mostrando 1-10 de 150 pedidos</strong><button class="btn btn-secondary">⬇ Exportar CSV</button></div>
+<table>
+<thead><tr><th>N° GUÍA</th><th>CLIENTE</th><th>RUC</th><th>DESTINO</th><th>ESTADO</th><th>SOPORTE</th><th>FECHA</th></tr></thead>
+<tbody>
+<tr><td class="tracking">GR-1001</td><td>Gamma Cargo S.A.C.</td><td>20554896321</td><td>Callao</td><td><span class="badge badge-delivered">Entregado</span></td><td>📸 Foto WhatsApp</td><td>02/03/2026</td></tr>
+<tr><td class="tracking">GR-1002</td><td>Aceros Dayana S.A.C.</td><td><span style="color:#ef4444">2045... ⚠️</span></td><td>Ate</td><td><span class="badge badge-delivered">Entregado</span></td><td>❌ Sin archivo</td><td>02/03/2026</td></tr>
+<tr><td class="tracking">GR-1003</td><td>Consorcio Vial Lima</td><td>20334259392</td><td>Lince</td><td><span class="badge badge-pending">Pendiente</span></td><td>📸 Foto WhatsApp</td><td>02/03/2026</td></tr>
+<tr><td class="tracking">GR-1004</td><td>Ferretería El Progreso</td><td><span style="color:#ef4444">2012... ⚠️</span></td><td>Comas</td><td><span class="badge badge-delivered">Entregado</span></td><td>❌ Sin archivo</td><td>02/03/2026</td></tr>
+<tr><td class="tracking">GR-1005</td><td>Ferretería El Progreso</td><td>20123456789</td><td>Comas</td><td><span class="badge badge-delivered">Entregado</span></td><td>📸 Foto WhatsApp</td><td>02/03/2026</td></tr>
+<tr><td class="tracking">GR-1006</td><td>Consorcio Vial Lima</td><td>20334259392</td><td>Lince</td><td><span class="badge badge-delivered">Entregado</span></td><td>📄 Físico</td><td>02/03/2026</td></tr>
+<tr><td class="tracking">GR-1007</td><td>Almacenes Santa Rosa</td><td><span style="color:#ef4444">2042... ⚠️</span></td><td>Santa Anita</td><td><span class="badge badge-delivered">Entregado</span></td><td>📸 Foto WhatsApp</td><td>03/03/2026</td></tr>
+<tr><td class="tracking">GR-1008</td><td>Distribuidora Mi Perú</td><td>20601245893</td><td>Los Olivos</td><td><span class="badge badge-failed">Rechazado</span></td><td>❌ Sin archivo</td><td>03/03/2026</td></tr>
+<tr><td class="tracking">GR-1009</td><td>Ferretería El Progreso</td><td>20123456789</td><td>Comas</td><td><span class="badge badge-delivered">Entregado</span></td><td>📸 Foto WhatsApp</td><td>03/03/2026</td></tr>
+<tr><td class="tracking">GR-1010</td><td>Ferretería El Progreso</td><td>20123456789</td><td>Comas</td><td><span class="badge badge-delivered">Entregado</span></td><td>📄 Físico</td><td>03/03/2026</td></tr>
+</tbody></table>
+<div class="pagination">
+<span>Página 1 de 15</span>
+<div class="page-btns"><button class="page-btn">«</button><button class="page-btn active">1</button><button class="page-btn">2</button><button class="page-btn">3</button><button class="page-btn">...</button><button class="page-btn">15</button><button class="page-btn">»</button></div>
+</div>
+</div>
+
+</div>
+</div>
+</body></html>
