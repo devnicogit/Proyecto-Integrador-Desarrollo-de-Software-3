@@ -125,3 +125,131 @@ button {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ========================================================================
+   Dashboard de KPIs Tesis — responsive
+   Aplica a la página /reports y al componente ThesisKpis
+   ======================================================================== */
+
+.reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.reports-tab-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.reports-tab-bar > button {
+  flex-shrink: 0;
+}
+
+.thesis-phase-toggle {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.thesis-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.thesis-ficha-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+}
+
+.thesis-chart-container {
+  height: 320px;
+  width: 100%;
+}
+
+.thesis-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tablet — colapsar grids a 1 columna */
+@media (max-width: 900px) {
+  .thesis-kpi-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .thesis-ficha-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile pequeño */
+@media (max-width: 640px) {
+  .reports-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .reports-header .header-title {
+    font-size: 1.4rem !important;
+  }
+  /* "Actualizado hoy a las..." se hace más chico */
+  .reports-header > span {
+    font-size: 0.75rem !important;
+  }
+
+  .reports-tab-bar > button {
+    flex: 1 1 50%;
+    padding: 0.5rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    justify-content: center;
+  }
+
+  .thesis-phase-toggle {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .thesis-phase-toggle > div[role="tablist"],
+  .thesis-phase-toggle > div:nth-child(2) {
+    width: 100%;
+  }
+  .thesis-phase-toggle button {
+    flex: 1;
+  }
+
+  .thesis-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .thesis-chart-container {
+    height: 260px;
+  }
+
+  /* Las cards KPI: ajustar tamaño del porcentaje gigante */
+  .thesis-kpi-grid .card > div:first-child > span {
+    font-size: 1.5rem !important;
+  }
+}
+
+/* Mobile muy chico (<400px) */
+@media (max-width: 400px) {
+  .thesis-chart-container {
+    height: 220px;
+  }
+  .reports-tab-bar > button {
+    font-size: 0.7rem !important;
+  }
+  .reports-tab-bar > button svg {
+    display: none;
+  }
+}

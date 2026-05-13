@@ -91,7 +91,7 @@ const ThesisKpis: React.FC = () => {
     <div style={{ marginBottom: '2rem' }}>
       {/* Phase toggle */}
       <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f8fafc' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+        <div className="thesis-phase-toggle">
           <span style={{ fontWeight: 600, color: '#1e293b' }}>Fase de medición:</span>
           <div style={{ display: 'flex', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
             <button
@@ -124,7 +124,7 @@ const ThesisKpis: React.FC = () => {
       </div>
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem', marginBottom: '1.5rem' }}>
+      <div className="thesis-kpi-grid">
         {INDICATORS.map(ind => {
           const data = current[ind.code];
           const pct = data?.totals.percentage ?? 0;
@@ -182,7 +182,7 @@ const ThesisKpis: React.FC = () => {
         <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Activity size={20} color="#2563eb" /> Comparativo Pre-Test vs Post-Test
         </h3>
-        <div style={{ height: '320px' }}>
+        <div className="thesis-chart-container">
           <Bar
             data={{
               labels: comparison.map(c => c.code),
@@ -204,7 +204,8 @@ const ThesisKpis: React.FC = () => {
             }}
           />
         </div>
-        <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+        <div className="thesis-table-wrapper">
+        <table style={{ width: '100%', marginTop: '1rem', borderCollapse: 'collapse', fontSize: '0.875rem', minWidth: '320px' }}>
           <thead>
             <tr style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <th style={{ padding: '0.5rem', textAlign: 'left' }}>Indicador</th>
@@ -224,6 +225,7 @@ const ThesisKpis: React.FC = () => {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Detalle de fila por fila (ficha del Anexo 2) */}
@@ -234,7 +236,7 @@ const ThesisKpis: React.FC = () => {
         <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: '1rem' }}>
           Investigador: Campos Vargas Kevin Stip · Empresa: Grupo Micotrans S.A.C. · Variable: Gestión Administrativa
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
+        <div className="thesis-ficha-grid">
           {INDICATORS.map(ind => {
             const data = current[ind.code];
             if (!data) return null;

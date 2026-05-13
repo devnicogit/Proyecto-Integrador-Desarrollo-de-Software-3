@@ -27,12 +27,16 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 768;
+      const w = window.innerWidth;
+      const mobile = w < 768;
+      const tablet = w >= 768 && w < 1024;
       setIsMobile(mobile);
+      setIsTablet(tablet);
       if (!mobile) setMobileOpen(false);
     };
     window.addEventListener('resize', handleResize);
@@ -52,16 +56,21 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
     if (isMobile) setMobileOpen(false);
   };
 
-  const sidebarWidth = collapsed && !isMobile ? '60px' : '260px';
-  const showLabels = !collapsed || isMobile;
+  // Lógica responsive:
+  //   < 768px (mobile): sidebar OCULTO por default, se abre como overlay con hamburguesa.
+  //   768–1023px (tablet): sidebar COLAPSADO (60px solo iconos), sin overlay.
+  //   ≥ 1024px (desktop): sidebar normal con prop `collapsed` controlada por el usuario.
+  const effectivelyCollapsed = isTablet || (collapsed && !isMobile);
+  const sidebarWidth = effectivelyCollapsed ? '60px' : '260px';
+  const showLabels = !effectivelyCollapsed || isMobile;
   const sidebarVisible = isMobile ? mobileOpen : true;
 
   const linkStyle = (isActive: boolean) => ({
     display: 'flex',
     alignItems: 'center',
     gap: showLabels ? '0.75rem' : '0',
-    padding: collapsed && !isMobile ? '0.75rem 0' : '0.75rem 1.5rem',
-    justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
+    padding: effectivelyCollapsed ? '0.75rem 0' : '0.75rem 1.5rem',
+    justifyContent: effectivelyCollapsed ? 'center' : 'flex-start',
     color: isActive ? '#3b82f6' : '#94a3b8',
     backgroundColor: isActive ? '#1e1b4b' : 'transparent',
     borderLeft: isActive ? '4px solid #3b82f6' : '4px solid transparent',
@@ -131,7 +140,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
           overflow: 'hidden',
         }}>
           {/* Header */}
-          <div style={{ padding: collapsed && !isMobile ? '0 0.5rem 1.5rem' : '0 1.5rem 1.5rem', borderBottom: '1px solid #334155' }}>
+          <div style={{ padding: effectivelyCollapsed ? '0 0.5rem 1.5rem' : '0 1.5rem 1.5rem', borderBottom: '1px solid #334155' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               {showLabels && (
                 <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#3b82f6', letterSpacing: '-0.025em' }}>EcoRoute</h1>
@@ -145,7 +154,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: collapsed && !isMobile ? '0 auto' : undefined,
+                  margin: effectivelyCollapsed ? '0 auto' : undefined,
                 }}
                 title={collapsed ? 'Expandir' : 'Colapsar'}
               >
@@ -162,7 +171,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
               padding: '0.5rem',
               backgroundColor: '#33415540',
               borderRadius: '0.5rem',
-              justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
+              justifyContent: effectivelyCollapsed ? 'center' : 'flex-start',
             }}>
               <div style={{ padding: '0.4rem', backgroundColor: '#3b82f6', borderRadius: '50%', color: '#fff', flexShrink: 0 }}>
                 <UserIcon size={14} />
@@ -173,7 +182,7 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
                   <p style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{user?.roles[0] || 'Sin Rol'}</p>
                 </div>
               )}
-              <NotificationPanel collapsed={collapsed && !isMobile} />
+              <NotificationPanel collapsed={effectivelyCollapsed} />
             </div>
           </div>
 
@@ -248,14 +257,14 @@ const Sidebar: React.FC<SidebarProps> = ({ collapsed, onToggle }) => {
           </nav>
 
           {/* Logout */}
-          <div style={{ padding: collapsed && !isMobile ? '1.5rem 0.5rem' : '1.5rem', borderTop: '1px solid #334155' }}>
+          <div style={{ padding: effectivelyCollapsed ? '1.5rem 0.5rem' : '1.5rem', borderTop: '1px solid #334155' }}>
             <button
               onClick={handleLogout}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: showLabels ? '0.75rem' : '0',
-                justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
+                justifyContent: effectivelyCollapsed ? 'center' : 'flex-start',
                 color: '#ef4444',
                 backgroundColor: 'transparent',
                 fontSize: '0.875rem',

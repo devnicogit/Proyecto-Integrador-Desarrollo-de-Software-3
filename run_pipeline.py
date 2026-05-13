@@ -150,6 +150,142 @@ def has_tool(name: str) -> bool:
 
 
 # --------------------------------------------------------------------------- #
+# 0. Preflight — validar pre-condiciones antes de empezar
+# --------------------------------------------------------------------------- #
+
+def _docker_running() -> tuple[bool, str]:
+    """¿Está el Docker daemon respondiendo? Devuelve (ok, mensaje)."""
+    try:
+        result = subprocess.run(
+            ["docker", "info", "--format", "{{.ServerVersion}}"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return True, f"Docker daemon OK (v{result.stdout.strip()})"
+        return False, "Docker instalado pero el daemon no responde — ¿iniciaste Docker Desktop?"
+    except FileNotFoundError:
+        return False, "Docker no está instalado o no está en PATH"
+    except subprocess.TimeoutExpired:
+        return False, "Docker daemon tardó >10s — ¿está iniciado pero ocupado?"
+    except Exception as e:
+        return False, f"Error consultando Docker: {e}"
+
+
+def _check_python_deps() -> tuple[bool, list[str]]:
+    """¿Están instaladas las dependencias Python que usa el pipeline?"""
+    needed = {
+        "docx": "python-docx",
+        "PIL": "Pillow",
+        "playwright": "playwright",
+    }
+    missing = []
+    for module, package in needed.items():
+        try:
+            __import__(module)
+        except ImportError:
+            missing.append(package)
+    return len(missing) == 0, missing
+
+
+def _check_avd_exists() -> tuple[bool, str]:
+    """¿Existe el AVD Pixel_9_Pro_XL?"""
+    if not EMULATOR_PATH.exists():
+        return False, f"emulator.exe no existe en {EMULATOR_PATH}"
+    try:
+        result = subprocess.run(
+            [str(EMULATOR_PATH), "-list-avds"],
+            capture_output=True, text=True, timeout=15,
+        )
+        if AVD_NAME in result.stdout:
+            return True, f"AVD '{AVD_NAME}' disponible"
+        avds = [a for a in result.stdout.split() if a]
+        return False, f"AVD '{AVD_NAME}' no existe. AVDs disponibles: {avds or '(ninguno)'}"
+    except Exception as e:
+        return False, f"Error listando AVDs: {e}"
+
+
+def _check_pdftotext() -> tuple[bool, str]:
+    if has_tool("pdftotext"):
+        return True, "pdftotext disponible (para Fase E)"
+    return False, "pdftotext no encontrado (Fase E saltará la descarga del PDF de Kevin)"
+
+
+def phase_preflight(dry: bool, skip_emulator: bool = False, skip_drive: bool = False) -> bool:
+    """Devuelve True si todas las verificaciones críticas pasaron."""
+    section("0. PREFLIGHT — validar pre-condiciones")
+
+    checks: list[tuple[str, bool, str, bool]] = []  # (nombre, ok, mensaje, es_crítico_para_alguna_fase)
+
+    step("0.1  Docker Desktop")
+    ok, msg = _docker_running()
+    checks.append(("Docker", ok, msg, True))
+    log("OK" if ok else "ERR", msg)
+    if not ok:
+        print(f"     {C.WARN}→ Solución:{C.OFF} abrí Docker Desktop, esperá al ícono verde (60s), reintentá.")
+
+    step("0.2  Dependencias Python (docx, Pillow, playwright)")
+    ok, missing = _check_python_deps()
+    msg = "Todas instaladas" if ok else f"Faltan: {', '.join(missing)}"
+    checks.append(("Python deps", ok, msg, True))
+    log("OK" if ok else "ERR", msg)
+    if not ok:
+        print(f"     {C.WARN}→ Solución:{C.OFF} pip install {' '.join(missing)}")
+
+    step("0.3  Java JDK")
+    java = has_tool("java")
+    checks.append(("Java", java, "java en PATH" if java else "java no encontrado",
+                    False))  # no crítico salvo para Flutter build
+    log("OK" if java else "WARN", "java en PATH" if java else "java no encontrado (impide flutter build)")
+
+    step("0.4  Flutter")
+    flutter = has_tool("flutter")
+    checks.append(("Flutter", flutter, "flutter en PATH" if flutter else "flutter no encontrado",
+                    False))
+    log("OK" if flutter else "WARN",
+         "flutter en PATH" if flutter else "flutter no encontrado (impide reinstalar la app móvil)")
+
+    step("0.5  Android SDK + AVD")
+    if skip_emulator:
+        log("INFO", "Saltando check de AVD (--skip-emulator)")
+    else:
+        ok, msg = _check_avd_exists()
+        checks.append(("AVD Pixel_9_Pro_XL", ok, msg, False))
+        log("OK" if ok else "WARN", msg)
+        if not ok:
+            print(f"     {C.WARN}→ Solución:{C.OFF} crear AVD desde Android Studio → Device Manager → 'Pixel 9 Pro XL'")
+
+    step("0.6  pdftotext (para Fase E descarga PDF de Kevin)")
+    if skip_drive:
+        log("INFO", "Saltando check de pdftotext (--skip-drive)")
+    else:
+        ok, msg = _check_pdftotext()
+        checks.append(("pdftotext", ok, msg, False))
+        log("OK" if ok else "WARN", msg)
+
+    step("0.7  Git + GitHub CLI")
+    git = has_tool("git")
+    gh  = has_tool("gh")
+    checks.append(("git", git, "git en PATH" if git else "git no encontrado", False))
+    log("OK" if git else "WARN", "git en PATH" if git else "git no encontrado (impide Fase G)")
+    log("OK" if gh else "INFO", "gh CLI disponible" if gh else "gh CLI no encontrado (los releases hay que subirlos manual)")
+
+    # Resumen
+    hr("─")
+    critical_failures = [c for c in checks if c[3] and not c[1]]
+    if critical_failures:
+        print(f"  {C.ERR}✗ {len(critical_failures)} prerequisito(s) crítico(s) faltan{C.OFF}:")
+        for name, _, msg, _ in critical_failures:
+            print(f"     • {name}: {msg}")
+        print()
+        print(f"  {C.BOLD}El pipeline NO puede continuar.{C.OFF}")
+        print(f"  Corregí los items críticos arriba y reintentá: {C.INFO}python run_pipeline.py{C.OFF}")
+        return False
+    else:
+        log("OK", "Todos los prerequisitos críticos OK; continúo")
+        return True
+
+
+# --------------------------------------------------------------------------- #
 # A. Infraestructura
 # --------------------------------------------------------------------------- #
 
@@ -270,10 +406,64 @@ def phase_emulator(dry: bool) -> None:
             else:
                 log("WARN", "flutter o mobile-app/ no disponibles; saltando build")
 
-    step("B.5  Lanzar app")
+    step("B.5  Dismiss overlays de Google Play Services / System UI (que tapan la app)")
+    # El AVD con google_apis suele mostrar "Servicios de Google Play está actualizándose"
+    # o "Para usar X aplicación, debes actualizar...". Estos diálogos tapan la app y
+    # bloquean las capturas. Estrategias para dismissarlos:
+    if not dry:
+        # 1. Force-stop Google Play Services y Google Services Framework
+        for pkg in ("com.google.android.gms", "com.android.vending",
+                    "com.google.android.gsf"):
+            run([str(ADB_PATH), "shell", "am", "force-stop", pkg],
+                check=False, capture=True)
+        # 2. Tap "Aceptar"/"OK"/"Update later" si están visibles (uiautomator dump)
+        try:
+            run([str(ADB_PATH), "shell", "uiautomator", "dump", "/sdcard/ui.xml"],
+                check=False, capture=True, timeout=10)
+            xml_out = run([str(ADB_PATH), "exec-out", "cat", "/sdcard/ui.xml"],
+                          capture=True, check=False, timeout=10)
+            import re
+            # Buscar botones cuyo texto sea OK / Aceptar / Cerrar / Update later / Skip / Got it
+            for keyword in ("OK", "Aceptar", "ACEPTAR", "Got it", "GOT IT",
+                            "Update later", "Skip", "Cerrar", "CERRAR",
+                            "No, thanks", "Dismiss"):
+                pattern = rf'text="{re.escape(keyword)}"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"'
+                m = re.search(pattern, xml_out)
+                if m:
+                    x1, y1, x2, y2 = map(int, m.groups())
+                    cx, cy = (x1+x2)//2, (y1+y2)//2
+                    log("INFO", f"Tap '{keyword}' en ({cx},{cy})")
+                    run([str(ADB_PATH), "shell", "input", "tap", str(cx), str(cy)],
+                        check=False, capture=True)
+                    time.sleep(1)
+        except Exception as e:
+            log("INFO", f"(dismiss dialogs best-effort: {e})")
+        # 3. KEYCODE_BACK x3 para cerrar cualquier overlay residual
+        for _ in range(3):
+            run([str(ADB_PATH), "shell", "input", "keyevent", "KEYCODE_BACK"],
+                check=False, capture=True)
+            time.sleep(0.5)
+        # 4. KEYCODE_HOME para volver al launcher limpio antes de lanzar la app
+        run([str(ADB_PATH), "shell", "input", "keyevent", "KEYCODE_HOME"],
+            check=False, capture=True)
+        time.sleep(1)
+
+    step("B.6  Lanzar app (en foreground, sobre estado limpio)")
+    run([str(ADB_PATH), "shell", "am", "force-stop", APP_PACKAGE],
+        dry=dry, check=False)
     run([str(ADB_PATH), "shell", "am", "start", "-n", f"{APP_PACKAGE}/.MainActivity"],
         dry=dry, check=False)
-    log("OK", "Emulador listo con app corriendo")
+    if not dry:
+        time.sleep(3)
+        # Re-dismiss por si los servicios reaparecieron tras el am start
+        for _ in range(2):
+            run([str(ADB_PATH), "shell", "input", "keyevent", "KEYCODE_BACK"],
+                check=False, capture=True)
+            time.sleep(0.3)
+        # Re-lanzar la app si el BACK la cerró
+        run([str(ADB_PATH), "shell", "am", "start", "-n", f"{APP_PACKAGE}/.MainActivity"],
+            check=False, capture=True)
+    log("OK", "Emulador listo con app corriendo en primer plano (overlays dismissed)")
 
 
 # --------------------------------------------------------------------------- #
@@ -571,6 +761,8 @@ def main() -> None:
                     help="En fase G, hacer commit/tag pero no push a remoto")
     ap.add_argument("--dry-run", action="store_true",
                     help="Mostrar comandos sin ejecutarlos")
+    ap.add_argument("--skip-preflight", action="store_true",
+                    help="No validar Docker / Python deps / AVD antes de empezar")
     args = ap.parse_args()
 
     hr("═")
@@ -581,6 +773,16 @@ def main() -> None:
     if args.only:
         print(f"  Fase única: {args.only}")
     hr("═")
+
+    # Fase 0 — preflight (a menos que pidas saltarla o --only)
+    if not args.only and not args.skip_preflight and not args.dry_run:
+        ok = phase_preflight(
+            args.dry_run,
+            skip_emulator=args.skip_emulator,
+            skip_drive=args.skip_drive,
+        )
+        if not ok:
+            sys.exit(1)
 
     for name, label, fn, _ in PHASES:
         if args.only and args.only != name:

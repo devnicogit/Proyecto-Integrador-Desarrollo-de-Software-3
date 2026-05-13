@@ -138,7 +138,7 @@ const Reports: React.FC = () => {
   return (
     <div className="main-content" style={{ overflowY: 'auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="reports-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <FileText size={28} color="#2563eb" />
           <h2 className="header-title" style={{ margin: 0 }}>Reportes y Anal&iacute;tica</h2>
@@ -147,7 +147,7 @@ const Reports: React.FC = () => {
       </div>
 
       {/* View toggle: Thesis KPIs vs Operational */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid #e2e8f0' }}>
+      <div className="reports-tab-bar">
         <button
           onClick={() => setView('thesis')}
           style={{
