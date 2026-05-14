@@ -4,12 +4,41 @@ Pantalla 1344x2992 (DPR 3.5 aprox), pero coords lógicas ≈ 412x917 dp.
 
 ADB input tap usa coords físicas (1344x2992).
 """
+import os
+import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
 
-ADB = r"C:\Users\USUARIO\AppData\Local\Android\Sdk\platform-tools\adb.exe"
+
+def _resolve_adb() -> str:
+    """Localiza adb: ANDROID_HOME → ANDROID_SDK_ROOT → ~/AppData/Local/Android/Sdk →
+    macOS / Linux defaults → PATH."""
+    for var in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
+        v = os.environ.get(var)
+        if v:
+            cand = Path(v) / "platform-tools" / ("adb.exe" if os.name == "nt" else "adb")
+            if cand.exists():
+                return str(cand)
+    home = Path.home()
+    suffix = "platform-tools/" + ("adb.exe" if os.name == "nt" else "adb")
+    for base in (home / "AppData" / "Local" / "Android" / "Sdk",
+                 home / "Library" / "Android" / "sdk",
+                 home / "Android" / "Sdk",
+                 Path(r"C:\Android\Sdk")):
+        cand = base / suffix
+        if cand.exists():
+            return str(cand)
+    # último recurso: buscar en PATH
+    found = shutil.which("adb")
+    if found:
+        return found
+    # mensaje claro: si no hay nada, devolvemos "adb" y dejamos que falle
+    return "adb"
+
+
+ADB = _resolve_adb()
 OUT_DIR = Path(__file__).parent / "figuras_capturas"
 OUT_DIR.mkdir(exist_ok=True)
 

@@ -66,8 +66,30 @@ TESIS = ROOT / "tesis_entregables"
 DOCX  = TESIS / "docx"
 CAPS  = TESIS / "figuras_capturas"
 
-ADB_PATH        = Path(os.environ.get("ANDROID_HOME", r"C:\Users\USUARIO\AppData\Local\Android\Sdk")) / "platform-tools" / "adb.exe"
-EMULATOR_PATH   = Path(os.environ.get("ANDROID_HOME", r"C:\Users\USUARIO\AppData\Local\Android\Sdk")) / "emulator" / "emulator.exe"
+# Android SDK: respeta ANDROID_HOME / ANDROID_SDK_ROOT; sino busca en ubicaciones
+# estándar de Windows (~/AppData/Local/Android/Sdk), macOS y Linux.
+def _resolve_android_sdk() -> Path:
+    for var in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
+        v = os.environ.get(var)
+        if v and Path(v).exists():
+            return Path(v)
+    home = Path.home()
+    candidates = [
+        home / "AppData" / "Local" / "Android" / "Sdk",          # Windows default
+        home / "Library" / "Android" / "sdk",                     # macOS default
+        home / "Android" / "Sdk",                                 # Linux default
+        Path(r"C:\Android\Sdk"),                                  # alternativa Windows
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    return candidates[0]  # fallback aunque no exista (para mensajes claros)
+
+_ANDROID_SDK   = _resolve_android_sdk()
+_ADB_EXE       = "adb.exe" if os.name == "nt" else "adb"
+_EMULATOR_EXE  = "emulator.exe" if os.name == "nt" else "emulator"
+ADB_PATH       = _ANDROID_SDK / "platform-tools" / _ADB_EXE
+EMULATOR_PATH  = _ANDROID_SDK / "emulator" / _EMULATOR_EXE
 # AVD a usar: ECOROUTE_AVD env var (override) > Pixel_9_Pro_XL > primer Pixel* > primer disponible
 AVD_NAME_PREFERRED = os.environ.get("ECOROUTE_AVD", "Pixel_9_Pro_XL")
 AVD_NAME        = AVD_NAME_PREFERRED  # se reasigna en _resolve_avd() si hace falta
@@ -176,9 +198,11 @@ def _docker_running() -> tuple[bool, str]:
 def _check_python_deps() -> tuple[bool, list[str]]:
     """¿Están instaladas las dependencias Python que usa el pipeline?"""
     needed = {
-        "docx": "python-docx",
-        "PIL": "Pillow",
+        "docx":      "python-docx",
+        "PIL":       "Pillow",
         "playwright": "playwright",
+        "reportlab": "reportlab",
+        "pypdfium2": "pypdfium2",
     }
     missing = []
     for module, package in needed.items():
@@ -375,6 +399,18 @@ def phase_infra(dry: bool) -> None:
         dry=dry, check=False)
     run(f"docker exec ecoroute-localstack awslocal sns create-topic --name {LOCALSTACK_TOPIC}",
         dry=dry, check=False)
+
+    step("A.6  Esperar a que backend (8081) y web-admin (3000) respondan")
+    if not dry:
+        if _wait_for_url("http://localhost:8081/actuator/health", timeout_s=120):
+            log("OK", "backend responde en http://localhost:8081")
+        else:
+            log("WARN", "backend no respondió en 120s (puede afectar fases B-H)")
+        if _wait_for_url("http://localhost:3000", timeout_s=60):
+            log("OK", "web-admin responde en http://localhost:3000")
+        else:
+            log("WARN", "web-admin no respondió en 60s (puede afectar Fase C.3)")
+
     log("OK", "Infraestructura levantada")
 
 
@@ -507,31 +543,59 @@ def phase_emulator(dry: bool) -> None:
 # C. Capturas
 # --------------------------------------------------------------------------- #
 
+def _wait_for_url(url: str, timeout_s: int = 60) -> bool:
+    """Espera hasta que la URL responda 2xx/3xx. Devuelve True si responde."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=3) as resp:
+                if resp.status < 500:
+                    return True
+        except Exception:
+            pass
+        time.sleep(2)
+    return False
+
+
 def phase_captures(dry: bool) -> None:
     section("C. CAPTURAS — flujo end-to-end móvil + web admin")
 
-    step("C.1  Flujo end-to-end móvil (RFM01..RFM22): login → tap pedido → IN_TRANSIT → foto → DELIVERED → DNI → firma → guardar")
-    script = TESIS / "capture_android_full_flow.py"
-    if exists(script):
-        run([sys.executable, str(script)], dry=dry, check=False, timeout=600)
+    # Si no hay adb disponible, saltar las capturas móviles (C.1, C.2) — dependen del emulador
+    has_adb = ADB_PATH.exists()
+    if not has_adb:
+        log("WARN", f"adb no encontrado en {ADB_PATH}; saltando capturas móviles (C.1, C.2)")
     else:
-        log("WARN", f"{script.name} no encontrado")
+        step("C.1  Flujo end-to-end móvil (RFM01..RFM22): login → tap pedido → IN_TRANSIT → foto → DELIVERED → DNI → firma → guardar")
+        script = TESIS / "capture_android_full_flow.py"
+        if exists(script):
+            run([sys.executable, str(script)], dry=dry, check=False, timeout=600)
+        else:
+            log("WARN", f"{script.name} no encontrado")
 
-    step("C.2  Generar thumbnails ≤1500 px para todas las capturas (anti-2000px)")
-    run([sys.executable, str(TESIS / "safe_capture.py"), "shrink_all", str(CAPS)],
-        dry=dry, check=False)
+        step("C.2  Generar thumbnails ≤1500 px para todas las capturas (anti-2000px)")
+        run([sys.executable, str(TESIS / "safe_capture.py"), "shrink_all", str(CAPS)],
+            dry=dry, check=False)
 
     step("C.3  Capturar panel web admin (F20-F47) con Playwright")
     web_script = TESIS / "capture_screenshots.py"
-    if exists(web_script):
-        # Pre-instalar browser de Playwright si falta (idempotente)
+    if not exists(web_script):
+        log("INFO", "capture_screenshots.py opcional; salteando")
+    else:
+        # Health-check del web admin antes de intentar capturar (evita
+        # ERR_CONNECTION_REFUSED si el contenedor todavía no levantó).
         if not dry:
+            log("INFO", "Esperando a que web-admin responda en http://localhost:3000 (hasta 60s)...")
+            if not _wait_for_url("http://localhost:3000", timeout_s=60):
+                log("WARN", "web-admin no respondió en 60s — saltando capturas web")
+                log("INFO", "Levantá manualmente: docker compose up -d ecoroute-web-admin")
+                log("OK", "Capturas listas (parcial)")
+                return
+            log("OK", "web-admin responde")
+            # Pre-instalar browser de Playwright si falta (idempotente)
             log("INFO", "Asegurando Playwright chromium instalado...")
             run([sys.executable, "-m", "playwright", "install", "chromium"],
                 check=False, timeout=300)
         run([sys.executable, str(web_script)], dry=dry, check=False, timeout=300)
-    else:
-        log("INFO", "capture_screenshots.py opcional; salteando")
     log("OK", "Capturas listas")
 
 
@@ -758,8 +822,45 @@ def phase_git(dry: bool, no_push: bool) -> None:
 
     step("G.5  Push a origin (rama actual)")
     branch = run(["git", "branch", "--show-current"], cwd=ROOT, capture=True).strip()
-    run(["git", "push", "origin", branch, tag], cwd=ROOT, dry=dry, check=False)
-    log("OK", "Push completo")
+    if not branch:
+        log("WARN", "No se pudo determinar la rama actual; saltando push")
+        return
+    # Verificar URL del remote para diagnosticar problemas de auth
+    remote_url = run(["git", "remote", "get-url", "origin"], cwd=ROOT, capture=True, check=False).strip()
+    if remote_url.startswith("https://") and not dry:
+        log("INFO", f"Remote HTTPS detectado: {remote_url}")
+        log("INFO", "Si el push falla por auth, configurá un Personal Access Token con `gh auth login`")
+        log("INFO", "O cambiá a SSH: git remote set-url origin git@github.com:USER/REPO.git")
+    # Push con capture para inspeccionar el output
+    if dry:
+        log("INFO", f"$ git push origin {branch} {tag}")
+        return
+    result = subprocess.run(
+        ["git", "push", "origin", branch, tag],
+        cwd=str(ROOT),
+        capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
+    )
+    # Imprimir output del git push (combinado)
+    output = (result.stdout or "") + (result.stderr or "")
+    for line in output.strip().split("\n"):
+        if line:
+            print(f"     {line}")
+    if result.returncode == 0:
+        log("OK", "Push completo")
+    elif "Authentication failed" in output or "could not read Username" in output:
+        log("ERR", "Push falló por autenticación")
+        print(f"     {C.WARN}→ Solución 1:{C.OFF} configurá un token con GitHub CLI:")
+        print(f"          gh auth login --hostname github.com --git-protocol https --web")
+        print(f"     {C.WARN}→ Solución 2:{C.OFF} cambiá el remote a SSH (requiere SSH key en GitHub):")
+        print(f"          git remote set-url origin git@github.com:devnicogit/Proyecto-Integrador-Desarrollo-de-Software-3.git")
+        print(f"     El commit y el tag quedaron locales — corré `git push --tags` después.")
+    elif "rejected" in output or "non-fast-forward" in output:
+        log("ERR", "Push rechazado (probablemente la rama remota está adelantada)")
+        print(f"     {C.WARN}→ Solución:{C.OFF} git pull --rebase origin {branch} && git push")
+    else:
+        log("ERR", f"Push falló con exit {result.returncode}")
+        print(f"     Tag '{tag}' y commit quedaron locales. Corré: git push origin {branch} {tag}")
 
 
 # --------------------------------------------------------------------------- #

@@ -11,6 +11,7 @@
 python-docx>=1.1.0    # convert_md_to_docx.py, build_anexo_*.py, build_tesis_*.py
 Pillow>=10.0.0        # safe_capture.py (thumbnails ≤1500 px anti-2000 px)
 reportlab>=4.0.0      # fichas KPI PDF (Anexo 2)
+pypdfium2>=4.0.0      # build_anexo2_consolidado.py (renderizar páginas PDF a PNG)
 
 # Capturas web
 playwright>=1.40.0    # capture_screenshots.py; el browser se auto-instala en C.3
