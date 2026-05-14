@@ -448,17 +448,60 @@ def phase_emulator(dry: bool) -> None:
         )
         log("INFO", f"Emulador PID={proc.pid}, log en {log_path}")
 
-    step("B.3  Esperar boot_completed (hasta 120s)")
+    step("B.3  Esperar boot_completed (hasta 300s — la primera vez puede tardar 3-5 min)")
+    booted = False
     if not dry:
-        for i in range(60):
-            out = run([str(ADB_PATH), "shell", "getprop", "sys.boot_completed"],
-                      capture=True, check=False)
-            if "1" in out:
-                log("OK", "Emulador booteado")
+        # Primero esperamos a que adb vea el device (offline → device)
+        log("INFO", "Esperando a que el device aparezca en `adb devices`...")
+        wait_proc = subprocess.run(
+            [str(ADB_PATH), "wait-for-device"],
+            capture_output=True, text=True, timeout=300,
+        )
+        if wait_proc.returncode != 0:
+            log("WARN", "adb wait-for-device falló o agotó timeout (300s)")
+        # Ahora polling silencioso de sys.boot_completed
+        log("INFO", "Esperando sys.boot_completed (polling cada 3s, silencioso)...")
+        start = time.time()
+        timeout_s = 300
+        last_report = start
+        while time.time() - start < timeout_s:
+            result = subprocess.run(
+                [str(ADB_PATH), "shell", "getprop", "sys.boot_completed"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if "1" in (result.stdout or ""):
+                booted = True
+                elapsed = int(time.time() - start)
+                log("OK", f"Emulador booteado tras {elapsed}s")
                 break
-            time.sleep(2)
-        else:
-            log("WARN", "Emulador no booteó en 120s")
+            # Reportar cada 30s para que el usuario sepa que sigue activo
+            if time.time() - last_report >= 30:
+                elapsed = int(time.time() - start)
+                log("INFO", f"...todavía booteando ({elapsed}s/{timeout_s}s)")
+                last_report = time.time()
+            time.sleep(3)
+        if not booted:
+            log("ERR", f"Emulador no booteó en {timeout_s}s — abortando Fase B")
+            # Mostrar últimas líneas del log del emulador para diagnóstico
+            emu_log = Path(r"C:\tmp\emulator.log")
+            if emu_log.exists():
+                print(f"     {C.WARN}Últimas 10 líneas de {emu_log}:{C.OFF}")
+                tail = emu_log.read_text(encoding="utf-8", errors="replace").splitlines()[-10:]
+                for ln in tail:
+                    print(f"       {ln}")
+            print(f"     {C.WARN}Posibles causas:{C.OFF}")
+            print(f"       - Falta aceleración HAXM/WHPX/Hyper-V (probá: `bcdedit /set hypervisorlaunchtype auto`)")
+            print(f"       - El AVD tiene poco RAM (recreá con 4 GB+)")
+            print(f"       - GPU mal configurada (probá con `-gpu swiftshader_indirect`)")
+            print(f"     Las fases C.1/C.2 se saltearán; podés re-correr con --only captures más tarde")
+            return
+
+    # Verificar que efectivamente hay un device usable antes de B.4
+    if not dry:
+        devs = run([str(ADB_PATH), "devices"], capture=True, check=False)
+        if "device" not in devs.replace("List of devices attached", ""):
+            log("ERR", "adb no detecta ningún device pese a boot_completed=1 — abortando Fase B")
+            return
 
     step("B.4  ¿App ya instalada?")
     if not dry:
