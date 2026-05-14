@@ -466,18 +466,61 @@ def phase_emulator(dry: bool) -> None:
         if APP_PACKAGE in pkgs:
             log("OK", f"{APP_PACKAGE} ya instalada")
         else:
-            log("INFO", f"{APP_PACKAGE} no instalada; compilando con Flutter...")
+            log("INFO", f"{APP_PACKAGE} no instalada; buscando APK para instalar...")
             mobile = ROOT / "mobile-app"
-            if has_tool("flutter") and exists(mobile):
-                run(["flutter", "pub", "get"], cwd=mobile, dry=dry, check=False, timeout=180)
-                run(["flutter", "build", "apk", "--debug"], cwd=mobile, dry=dry, check=False, timeout=600)
-                apk = mobile / "build" / "app" / "outputs" / "flutter-apk" / "app-debug.apk"
-                if apk.exists():
-                    run([str(ADB_PATH), "install", "-r", str(apk)], dry=dry, check=False)
+            # Estrategia 1: usar APK pre-compilado del repo (NO requiere Flutter)
+            installed = False
+            prebuilt_dir = mobile / "prebuilt"
+            if prebuilt_dir.exists():
+                # Detectar arquitectura del emulador para elegir el APK correcto
+                abi_out = run([str(ADB_PATH), "shell", "getprop", "ro.product.cpu.abi"],
+                              capture=True, check=False).strip()
+                log("INFO", f"Arquitectura del emulador detectada: {abi_out or 'desconocida'}")
+                abi_map = {
+                    "x86_64":     "app-debug-x86_64.apk",
+                    "arm64-v8a":  "app-debug-arm64-v8a.apk",
+                }
+                preferred = abi_map.get(abi_out)
+                candidates = []
+                if preferred:
+                    candidates.append(prebuilt_dir / preferred)
+                # Fallback: cualquier APK que esté ahí
+                candidates.extend(sorted(prebuilt_dir.glob("*.apk")))
+                seen = set()
+                for apk in candidates:
+                    if apk in seen or not apk.exists():
+                        continue
+                    seen.add(apk)
+                    log("INFO", f"Intentando instalar APK pre-built: {apk.name} ({apk.stat().st_size//1024//1024} MB)")
+                    result = subprocess.run(
+                        [str(ADB_PATH), "install", "-r", str(apk)],
+                        capture_output=True, text=True,
+                        encoding="utf-8", errors="replace",
+                    )
+                    if "Success" in (result.stdout or "") or "Success" in (result.stderr or ""):
+                        log("OK", f"APK pre-built instalado: {apk.name}")
+                        installed = True
+                        break
+                    else:
+                        log("WARN", f"{apk.name} no se pudo instalar: {(result.stderr or result.stdout)[:120]}")
+            # Estrategia 2: si el pre-built no funcionó, fallback a Flutter build
+            if not installed:
+                if has_tool("flutter") and exists(mobile):
+                    log("INFO", "Compilando con Flutter como fallback...")
+                    run(["flutter", "pub", "get"], cwd=mobile, dry=dry, check=False, timeout=180)
+                    run(["flutter", "build", "apk", "--debug"], cwd=mobile, dry=dry, check=False, timeout=600)
+                    apk = mobile / "build" / "app" / "outputs" / "flutter-apk" / "app-debug.apk"
+                    if apk.exists():
+                        run([str(ADB_PATH), "install", "-r", str(apk)], dry=dry, check=False)
+                        installed = True
+                    else:
+                        log("WARN", f"APK no se generó: {apk}")
                 else:
-                    log("WARN", f"APK no se generó: {apk}")
-            else:
-                log("WARN", "flutter o mobile-app/ no disponibles; saltando build")
+                    log("ERR", "Ni APK pre-built ni Flutter disponibles para instalar la app")
+                    print(f"     {C.WARN}→ Opción A:{C.OFF} instalar Flutter (winget install Flutter.Flutter)")
+                    print(f"     {C.WARN}→ Opción B:{C.OFF} verificar que existe mobile-app/prebuilt/app-debug-*.apk")
+                    print(f"     Fase B abortada; las fases C.1/C.2 saltearán capturas móviles.")
+                    return
 
     step("B.5  Dismiss overlays de Google Play Services / System UI (que tapan la app)")
     # El AVD con google_apis suele mostrar "Servicios de Google Play está actualizándose"
