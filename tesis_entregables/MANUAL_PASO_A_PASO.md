@@ -4,6 +4,38 @@
 
 **Cómo leerlo:** las fases A→G están en orden de dependencia. Si una falla, las siguientes pueden saltarse. Cada paso explica **qué hace**, **para qué** y **el comando exacto**.
 
+---
+
+## 🚀 Setup en una PC nueva (TL;DR)
+
+```powershell
+# 1. Clonar el repo
+git clone git@github.com:devnicogit/Proyecto-Integrador-Desarrollo-de-Software-3.git
+cd "Proyecto-Integrador-Desarrollo-de-Software-3"
+
+# 2. Iniciar Docker Desktop (esperar al ícono verde en la bandeja del sistema)
+
+# 3. (Opcional) instalar deps Python — el pipeline también las auto-instala
+pip install -r requirements.txt
+
+# 4. (Si tu AVD se llama distinto a "Pixel_9_Pro_XL") — opcional
+$env:ECOROUTE_AVD = "Mi_AVD"
+
+# 5. (Si Android SDK está en otra ruta) — opcional
+[Environment]::SetEnvironmentVariable("ANDROID_HOME", "C:\ruta\al\sdk", "User")
+
+# 6. Correr el pipeline completo
+python run_pipeline.py
+```
+
+El pipeline tiene una **Fase 0 Preflight** que:
+- Detecta si Docker Desktop está iniciado y aborta con instrucción si no.
+- Detecta si faltan deps Python y las auto-instala desde `requirements.txt`.
+- Detecta el AVD disponible (prefiere `Pixel_9_Pro_XL`, sino el primer Pixel*, sino el primero).
+- Detecta Java, Flutter, pdftotext, git, gh CLI — degrada con WARN si faltan los no críticos.
+
+---
+
 **Tip:** todo lo que está acá lo automatiza `run_pipeline.py` desde la raíz del repo:
 ```powershell
 python run_pipeline.py                       # ejecuta TODO (A→G)
