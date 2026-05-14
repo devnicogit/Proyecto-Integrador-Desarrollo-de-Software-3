@@ -66,8 +66,30 @@ TESIS = ROOT / "tesis_entregables"
 DOCX  = TESIS / "docx"
 CAPS  = TESIS / "figuras_capturas"
 
-ADB_PATH        = Path(os.environ.get("ANDROID_HOME", r"C:\Users\USUARIO\AppData\Local\Android\Sdk")) / "platform-tools" / "adb.exe"
-EMULATOR_PATH   = Path(os.environ.get("ANDROID_HOME", r"C:\Users\USUARIO\AppData\Local\Android\Sdk")) / "emulator" / "emulator.exe"
+# Android SDK: respeta ANDROID_HOME / ANDROID_SDK_ROOT; sino busca en ubicaciones
+# estándar de Windows (~/AppData/Local/Android/Sdk), macOS y Linux.
+def _resolve_android_sdk() -> Path:
+    for var in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
+        v = os.environ.get(var)
+        if v and Path(v).exists():
+            return Path(v)
+    home = Path.home()
+    candidates = [
+        home / "AppData" / "Local" / "Android" / "Sdk",          # Windows default
+        home / "Library" / "Android" / "sdk",                     # macOS default
+        home / "Android" / "Sdk",                                 # Linux default
+        Path(r"C:\Android\Sdk"),                                  # alternativa Windows
+    ]
+    for c in candidates:
+        if c.exists():
+            return c
+    return candidates[0]  # fallback aunque no exista (para mensajes claros)
+
+_ANDROID_SDK   = _resolve_android_sdk()
+_ADB_EXE       = "adb.exe" if os.name == "nt" else "adb"
+_EMULATOR_EXE  = "emulator.exe" if os.name == "nt" else "emulator"
+ADB_PATH       = _ANDROID_SDK / "platform-tools" / _ADB_EXE
+EMULATOR_PATH  = _ANDROID_SDK / "emulator" / _EMULATOR_EXE
 # AVD a usar: ECOROUTE_AVD env var (override) > Pixel_9_Pro_XL > primer Pixel* > primer disponible
 AVD_NAME_PREFERRED = os.environ.get("ECOROUTE_AVD", "Pixel_9_Pro_XL")
 AVD_NAME        = AVD_NAME_PREFERRED  # se reasigna en _resolve_avd() si hace falta
@@ -176,9 +198,11 @@ def _docker_running() -> tuple[bool, str]:
 def _check_python_deps() -> tuple[bool, list[str]]:
     """¿Están instaladas las dependencias Python que usa el pipeline?"""
     needed = {
-        "docx": "python-docx",
-        "PIL": "Pillow",
+        "docx":      "python-docx",
+        "PIL":       "Pillow",
         "playwright": "playwright",
+        "reportlab": "reportlab",
+        "pypdfium2": "pypdfium2",
     }
     missing = []
     for module, package in needed.items():
@@ -375,6 +399,18 @@ def phase_infra(dry: bool) -> None:
         dry=dry, check=False)
     run(f"docker exec ecoroute-localstack awslocal sns create-topic --name {LOCALSTACK_TOPIC}",
         dry=dry, check=False)
+
+    step("A.6  Esperar a que backend (8081) y web-admin (3000) respondan")
+    if not dry:
+        if _wait_for_url("http://localhost:8081/actuator/health", timeout_s=120):
+            log("OK", "backend responde en http://localhost:8081")
+        else:
+            log("WARN", "backend no respondió en 120s (puede afectar fases B-H)")
+        if _wait_for_url("http://localhost:3000", timeout_s=60):
+            log("OK", "web-admin responde en http://localhost:3000")
+        else:
+            log("WARN", "web-admin no respondió en 60s (puede afectar Fase C.3)")
+
     log("OK", "Infraestructura levantada")
 
 
@@ -412,17 +448,60 @@ def phase_emulator(dry: bool) -> None:
         )
         log("INFO", f"Emulador PID={proc.pid}, log en {log_path}")
 
-    step("B.3  Esperar boot_completed (hasta 120s)")
+    step("B.3  Esperar boot_completed (hasta 300s — la primera vez puede tardar 3-5 min)")
+    booted = False
     if not dry:
-        for i in range(60):
-            out = run([str(ADB_PATH), "shell", "getprop", "sys.boot_completed"],
-                      capture=True, check=False)
-            if "1" in out:
-                log("OK", "Emulador booteado")
+        # Primero esperamos a que adb vea el device (offline → device)
+        log("INFO", "Esperando a que el device aparezca en `adb devices`...")
+        wait_proc = subprocess.run(
+            [str(ADB_PATH), "wait-for-device"],
+            capture_output=True, text=True, timeout=300,
+        )
+        if wait_proc.returncode != 0:
+            log("WARN", "adb wait-for-device falló o agotó timeout (300s)")
+        # Ahora polling silencioso de sys.boot_completed
+        log("INFO", "Esperando sys.boot_completed (polling cada 3s, silencioso)...")
+        start = time.time()
+        timeout_s = 300
+        last_report = start
+        while time.time() - start < timeout_s:
+            result = subprocess.run(
+                [str(ADB_PATH), "shell", "getprop", "sys.boot_completed"],
+                capture_output=True, text=True, timeout=10,
+            )
+            if "1" in (result.stdout or ""):
+                booted = True
+                elapsed = int(time.time() - start)
+                log("OK", f"Emulador booteado tras {elapsed}s")
                 break
-            time.sleep(2)
-        else:
-            log("WARN", "Emulador no booteó en 120s")
+            # Reportar cada 30s para que el usuario sepa que sigue activo
+            if time.time() - last_report >= 30:
+                elapsed = int(time.time() - start)
+                log("INFO", f"...todavía booteando ({elapsed}s/{timeout_s}s)")
+                last_report = time.time()
+            time.sleep(3)
+        if not booted:
+            log("ERR", f"Emulador no booteó en {timeout_s}s — abortando Fase B")
+            # Mostrar últimas líneas del log del emulador para diagnóstico
+            emu_log = Path(r"C:\tmp\emulator.log")
+            if emu_log.exists():
+                print(f"     {C.WARN}Últimas 10 líneas de {emu_log}:{C.OFF}")
+                tail = emu_log.read_text(encoding="utf-8", errors="replace").splitlines()[-10:]
+                for ln in tail:
+                    print(f"       {ln}")
+            print(f"     {C.WARN}Posibles causas:{C.OFF}")
+            print(f"       - Falta aceleración HAXM/WHPX/Hyper-V (probá: `bcdedit /set hypervisorlaunchtype auto`)")
+            print(f"       - El AVD tiene poco RAM (recreá con 4 GB+)")
+            print(f"       - GPU mal configurada (probá con `-gpu swiftshader_indirect`)")
+            print(f"     Las fases C.1/C.2 se saltearán; podés re-correr con --only captures más tarde")
+            return
+
+    # Verificar que efectivamente hay un device usable antes de B.4
+    if not dry:
+        devs = run([str(ADB_PATH), "devices"], capture=True, check=False)
+        if "device" not in devs.replace("List of devices attached", ""):
+            log("ERR", "adb no detecta ningún device pese a boot_completed=1 — abortando Fase B")
+            return
 
     step("B.4  ¿App ya instalada?")
     if not dry:
@@ -430,18 +509,61 @@ def phase_emulator(dry: bool) -> None:
         if APP_PACKAGE in pkgs:
             log("OK", f"{APP_PACKAGE} ya instalada")
         else:
-            log("INFO", f"{APP_PACKAGE} no instalada; compilando con Flutter...")
+            log("INFO", f"{APP_PACKAGE} no instalada; buscando APK para instalar...")
             mobile = ROOT / "mobile-app"
-            if has_tool("flutter") and exists(mobile):
-                run(["flutter", "pub", "get"], cwd=mobile, dry=dry, check=False, timeout=180)
-                run(["flutter", "build", "apk", "--debug"], cwd=mobile, dry=dry, check=False, timeout=600)
-                apk = mobile / "build" / "app" / "outputs" / "flutter-apk" / "app-debug.apk"
-                if apk.exists():
-                    run([str(ADB_PATH), "install", "-r", str(apk)], dry=dry, check=False)
+            # Estrategia 1: usar APK pre-compilado del repo (NO requiere Flutter)
+            installed = False
+            prebuilt_dir = mobile / "prebuilt"
+            if prebuilt_dir.exists():
+                # Detectar arquitectura del emulador para elegir el APK correcto
+                abi_out = run([str(ADB_PATH), "shell", "getprop", "ro.product.cpu.abi"],
+                              capture=True, check=False).strip()
+                log("INFO", f"Arquitectura del emulador detectada: {abi_out or 'desconocida'}")
+                abi_map = {
+                    "x86_64":     "app-debug-x86_64.apk",
+                    "arm64-v8a":  "app-debug-arm64-v8a.apk",
+                }
+                preferred = abi_map.get(abi_out)
+                candidates = []
+                if preferred:
+                    candidates.append(prebuilt_dir / preferred)
+                # Fallback: cualquier APK que esté ahí
+                candidates.extend(sorted(prebuilt_dir.glob("*.apk")))
+                seen = set()
+                for apk in candidates:
+                    if apk in seen or not apk.exists():
+                        continue
+                    seen.add(apk)
+                    log("INFO", f"Intentando instalar APK pre-built: {apk.name} ({apk.stat().st_size//1024//1024} MB)")
+                    result = subprocess.run(
+                        [str(ADB_PATH), "install", "-r", str(apk)],
+                        capture_output=True, text=True,
+                        encoding="utf-8", errors="replace",
+                    )
+                    if "Success" in (result.stdout or "") or "Success" in (result.stderr or ""):
+                        log("OK", f"APK pre-built instalado: {apk.name}")
+                        installed = True
+                        break
+                    else:
+                        log("WARN", f"{apk.name} no se pudo instalar: {(result.stderr or result.stdout)[:120]}")
+            # Estrategia 2: si el pre-built no funcionó, fallback a Flutter build
+            if not installed:
+                if has_tool("flutter") and exists(mobile):
+                    log("INFO", "Compilando con Flutter como fallback...")
+                    run(["flutter", "pub", "get"], cwd=mobile, dry=dry, check=False, timeout=180)
+                    run(["flutter", "build", "apk", "--debug"], cwd=mobile, dry=dry, check=False, timeout=600)
+                    apk = mobile / "build" / "app" / "outputs" / "flutter-apk" / "app-debug.apk"
+                    if apk.exists():
+                        run([str(ADB_PATH), "install", "-r", str(apk)], dry=dry, check=False)
+                        installed = True
+                    else:
+                        log("WARN", f"APK no se generó: {apk}")
                 else:
-                    log("WARN", f"APK no se generó: {apk}")
-            else:
-                log("WARN", "flutter o mobile-app/ no disponibles; saltando build")
+                    log("ERR", "Ni APK pre-built ni Flutter disponibles para instalar la app")
+                    print(f"     {C.WARN}→ Opción A:{C.OFF} instalar Flutter (winget install Flutter.Flutter)")
+                    print(f"     {C.WARN}→ Opción B:{C.OFF} verificar que existe mobile-app/prebuilt/app-debug-*.apk")
+                    print(f"     Fase B abortada; las fases C.1/C.2 saltearán capturas móviles.")
+                    return
 
     step("B.5  Dismiss overlays de Google Play Services / System UI (que tapan la app)")
     # El AVD con google_apis suele mostrar "Servicios de Google Play está actualizándose"
@@ -507,31 +629,59 @@ def phase_emulator(dry: bool) -> None:
 # C. Capturas
 # --------------------------------------------------------------------------- #
 
+def _wait_for_url(url: str, timeout_s: int = 60) -> bool:
+    """Espera hasta que la URL responda 2xx/3xx. Devuelve True si responde."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=3) as resp:
+                if resp.status < 500:
+                    return True
+        except Exception:
+            pass
+        time.sleep(2)
+    return False
+
+
 def phase_captures(dry: bool) -> None:
     section("C. CAPTURAS — flujo end-to-end móvil + web admin")
 
-    step("C.1  Flujo end-to-end móvil (RFM01..RFM22): login → tap pedido → IN_TRANSIT → foto → DELIVERED → DNI → firma → guardar")
-    script = TESIS / "capture_android_full_flow.py"
-    if exists(script):
-        run([sys.executable, str(script)], dry=dry, check=False, timeout=600)
+    # Si no hay adb disponible, saltar las capturas móviles (C.1, C.2) — dependen del emulador
+    has_adb = ADB_PATH.exists()
+    if not has_adb:
+        log("WARN", f"adb no encontrado en {ADB_PATH}; saltando capturas móviles (C.1, C.2)")
     else:
-        log("WARN", f"{script.name} no encontrado")
+        step("C.1  Flujo end-to-end móvil (RFM01..RFM22): login → tap pedido → IN_TRANSIT → foto → DELIVERED → DNI → firma → guardar")
+        script = TESIS / "capture_android_full_flow.py"
+        if exists(script):
+            run([sys.executable, str(script)], dry=dry, check=False, timeout=600)
+        else:
+            log("WARN", f"{script.name} no encontrado")
 
-    step("C.2  Generar thumbnails ≤1500 px para todas las capturas (anti-2000px)")
-    run([sys.executable, str(TESIS / "safe_capture.py"), "shrink_all", str(CAPS)],
-        dry=dry, check=False)
+        step("C.2  Generar thumbnails ≤1500 px para todas las capturas (anti-2000px)")
+        run([sys.executable, str(TESIS / "safe_capture.py"), "shrink_all", str(CAPS)],
+            dry=dry, check=False)
 
     step("C.3  Capturar panel web admin (F20-F47) con Playwright")
     web_script = TESIS / "capture_screenshots.py"
-    if exists(web_script):
-        # Pre-instalar browser de Playwright si falta (idempotente)
+    if not exists(web_script):
+        log("INFO", "capture_screenshots.py opcional; salteando")
+    else:
+        # Health-check del web admin antes de intentar capturar (evita
+        # ERR_CONNECTION_REFUSED si el contenedor todavía no levantó).
         if not dry:
+            log("INFO", "Esperando a que web-admin responda en http://localhost:3000 (hasta 60s)...")
+            if not _wait_for_url("http://localhost:3000", timeout_s=60):
+                log("WARN", "web-admin no respondió en 60s — saltando capturas web")
+                log("INFO", "Levantá manualmente: docker compose up -d ecoroute-web-admin")
+                log("OK", "Capturas listas (parcial)")
+                return
+            log("OK", "web-admin responde")
+            # Pre-instalar browser de Playwright si falta (idempotente)
             log("INFO", "Asegurando Playwright chromium instalado...")
             run([sys.executable, "-m", "playwright", "install", "chromium"],
                 check=False, timeout=300)
         run([sys.executable, str(web_script)], dry=dry, check=False, timeout=300)
-    else:
-        log("INFO", "capture_screenshots.py opcional; salteando")
     log("OK", "Capturas listas")
 
 
@@ -758,8 +908,45 @@ def phase_git(dry: bool, no_push: bool) -> None:
 
     step("G.5  Push a origin (rama actual)")
     branch = run(["git", "branch", "--show-current"], cwd=ROOT, capture=True).strip()
-    run(["git", "push", "origin", branch, tag], cwd=ROOT, dry=dry, check=False)
-    log("OK", "Push completo")
+    if not branch:
+        log("WARN", "No se pudo determinar la rama actual; saltando push")
+        return
+    # Verificar URL del remote para diagnosticar problemas de auth
+    remote_url = run(["git", "remote", "get-url", "origin"], cwd=ROOT, capture=True, check=False).strip()
+    if remote_url.startswith("https://") and not dry:
+        log("INFO", f"Remote HTTPS detectado: {remote_url}")
+        log("INFO", "Si el push falla por auth, configurá un Personal Access Token con `gh auth login`")
+        log("INFO", "O cambiá a SSH: git remote set-url origin git@github.com:USER/REPO.git")
+    # Push con capture para inspeccionar el output
+    if dry:
+        log("INFO", f"$ git push origin {branch} {tag}")
+        return
+    result = subprocess.run(
+        ["git", "push", "origin", branch, tag],
+        cwd=str(ROOT),
+        capture_output=True, text=True,
+        encoding="utf-8", errors="replace",
+    )
+    # Imprimir output del git push (combinado)
+    output = (result.stdout or "") + (result.stderr or "")
+    for line in output.strip().split("\n"):
+        if line:
+            print(f"     {line}")
+    if result.returncode == 0:
+        log("OK", "Push completo")
+    elif "Authentication failed" in output or "could not read Username" in output:
+        log("ERR", "Push falló por autenticación")
+        print(f"     {C.WARN}→ Solución 1:{C.OFF} configurá un token con GitHub CLI:")
+        print(f"          gh auth login --hostname github.com --git-protocol https --web")
+        print(f"     {C.WARN}→ Solución 2:{C.OFF} cambiá el remote a SSH (requiere SSH key en GitHub):")
+        print(f"          git remote set-url origin git@github.com:devnicogit/Proyecto-Integrador-Desarrollo-de-Software-3.git")
+        print(f"     El commit y el tag quedaron locales — corré `git push --tags` después.")
+    elif "rejected" in output or "non-fast-forward" in output:
+        log("ERR", "Push rechazado (probablemente la rama remota está adelantada)")
+        print(f"     {C.WARN}→ Solución:{C.OFF} git pull --rebase origin {branch} && git push")
+    else:
+        log("ERR", f"Push falló con exit {result.returncode}")
+        print(f"     Tag '{tag}' y commit quedaron locales. Corré: git push origin {branch} {tag}")
 
 
 # --------------------------------------------------------------------------- #
