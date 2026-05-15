@@ -11,11 +11,13 @@ según la arquitectura del emulador detectada con `adb shell getprop ro.product.
 ## Archivos
 
 - `app-debug-x86_64.apk` — para AVDs corriendo en PC con CPU Intel/AMD
-  (típicamente Pixel 9 Pro XL, Pixel 6 Pro, Medium_Phone_API_36, etc. en
-  Windows/macOS/Linux x86_64). **Es el más común**.
+  (Pixel 9 Pro XL, Pixel 6 Pro, Medium_Phone_API_36, etc. en Windows/macOS/Linux
+  x86_64). **Único versionado** (cabe en límite 100 MB de GitHub). Es el caso de
+  uso del pipeline (AVD corriendo en PC).
 
-- `app-debug-arm64-v8a.apk` — para dispositivos físicos Android modernos
-  o AVDs en Apple Silicon (M1/M2/M3).
+- ~~`app-debug-arm64-v8a.apk`~~ — NO versionado (supera 100 MB). Para
+  dispositivos físicos Android o AVDs en Apple Silicon (M1/M2/M3),
+  compilalo localmente con el comando de abajo.
 
 ## Si querés re-generarlos
 

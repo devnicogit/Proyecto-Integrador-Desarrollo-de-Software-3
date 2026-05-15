@@ -9,4 +9,9 @@ public interface DriverRepository {
     Flux<Driver> findAll();
     Mono<Driver> findById(Long id);
     Mono<Void> deleteById(Long id);
+
+    /** Para mapear un user (Keycloak preferred_username / Bearer mock_<user>__DRIVER)
+     *  con el Driver real. Devuelve vacío si no hay match. */
+    Mono<Driver> findByExternalId(String externalId);
+    Mono<Driver> findByEmail(String email);
 }

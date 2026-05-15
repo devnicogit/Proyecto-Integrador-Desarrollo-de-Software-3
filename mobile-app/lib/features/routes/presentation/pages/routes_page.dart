@@ -154,36 +154,77 @@ class _RoutesPageState extends State<RoutesPage> {
                           }
                         }
 
+                        // Active orders ordenados por tracking_number para
+                        // mostrar numeración estable de paradas.
                         final activeOrders = orderState.orders
                             .where((o) => o.status == 'PENDING' || o.status == 'IN_TRANSIT')
-                            .toList();
+                            .toList()
+                          ..sort((a, b) => a.trackingNumber.compareTo(b.trackingNumber));
 
-                        final orderMarkers = activeOrders
-                            .map((o) {
-                              if (o.latitude == null || o.longitude == null) return null;
-                              return Marker(
-                                point: LatLng(o.latitude!, o.longitude!),
-                                width: 40,
-                                height: 40,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    context.push('/orders/${o.id}', extra: o);
-                                  },
-                                  child: Icon(
-                                    Icons.location_on,
-                                    color: o.status == 'IN_TRANSIT' ? Colors.orange : Colors.red,
-                                    size: 35,
-                                  ),
+                        // Markers numerados con tooltip permanente "Parada #N",
+                        // tap → detalle del pedido. Equivale al TrackingMap del web.
+                        final orderMarkers = <Marker>[];
+                        for (var idx = 0; idx < activeOrders.length; idx++) {
+                          final o = activeOrders[idx];
+                          if (o.latitude == null || o.longitude == null) continue;
+                          final isInTransit = o.status == 'IN_TRANSIT';
+                          orderMarkers.add(
+                            Marker(
+                              point: LatLng(o.latitude!, o.longitude!),
+                              width: 80,
+                              height: 80,
+                              child: GestureDetector(
+                                onTap: () => context.push('/orders/${o.id}', extra: o),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Etiqueta "Parada #N" siempre visible
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isInTransit
+                                            ? Colors.orange.shade700
+                                            : Colors.red.shade700,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        '#${idx + 1}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.location_on,
+                                      color: isInTransit
+                                          ? Colors.orange
+                                          : Colors.red,
+                                      size: 35,
+                                    ),
+                                  ],
                                 ),
-                              );
-                            })
-                            .whereType<Marker>()
-                            .toList();
+                              ),
+                            ),
+                          );
+                        }
 
-                        final routePoints = activeOrders
-                            .where((o) => o.latitude != null && o.longitude != null)
-                            .map((o) => LatLng(o.latitude!, o.longitude!))
-                            .toList();
+                        // Recorrido planeado (nearest neighbor simple desde GPS
+                        // actual hasta cada parada en orden de prioridad).
+                        final List<LatLng> plannedPath = [];
+                        if (gpsState.lastKnownPosition != null) {
+                          plannedPath.add(LatLng(
+                            gpsState.lastKnownPosition!.latitude,
+                            gpsState.lastKnownPosition!.longitude,
+                          ));
+                        }
+                        for (final o in activeOrders) {
+                          if (o.latitude != null && o.longitude != null) {
+                            plannedPath.add(LatLng(o.latitude!, o.longitude!));
+                          }
+                        }
 
                         return Stack(
                           children: [
@@ -192,21 +233,40 @@ class _RoutesPageState extends State<RoutesPage> {
                               options: MapOptions(
                                 initialCenter: centerLatLng,
                                 initialZoom: 13.0,
+                                interactionOptions: const InteractionOptions(
+                                  flags: InteractiveFlag.all,  // pan + zoom + rotate
+                                ),
                               ),
                               children: [
                                 TileLayer(
-                                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  urlTemplate:
+                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                   userAgentPackageName: 'com.ecoroute.driver',
                                 ),
-                                if (routePoints.length > 1)
+                                // Ruta planeada (gris suave, debajo del recorrido real)
+                                if (plannedPath.length > 1)
                                   PolylineLayer(
                                     polylines: [
                                       Polyline(
-                                        points: routePoints,
-                                        color: Colors.blueAccent.withOpacity(0.9),
-                                        strokeWidth: 8.0,
-                                        borderColor: Colors.blue[900],
-                                        borderStrokeWidth: 3.0,
+                                        points: plannedPath,
+                                        color: Colors.grey.withOpacity(0.5),
+                                        strokeWidth: 3.0,
+                                      ),
+                                    ],
+                                  ),
+                                // Recorrido real (entre paradas activas)
+                                if (orderMarkers.length > 1)
+                                  PolylineLayer(
+                                    polylines: [
+                                      Polyline(
+                                        points: orderMarkers
+                                            .map((m) => m.point)
+                                            .toList(),
+                                        color:
+                                            Colors.blueAccent.withOpacity(0.9),
+                                        strokeWidth: 5.0,
+                                        borderColor: Colors.blue.shade900,
+                                        borderStrokeWidth: 2.0,
                                       ),
                                     ],
                                   ),
@@ -214,23 +274,132 @@ class _RoutesPageState extends State<RoutesPage> {
                                   markers: [
                                     if (gpsState.lastKnownPosition != null)
                                       Marker(
-                                        point: LatLng(gpsState.lastKnownPosition!.latitude, gpsState.lastKnownPosition!.longitude),
-                                        width: 60,
-                                        height: 60,
-                                        child: const Icon(Icons.local_shipping, color: Colors.blue, size: 40),
+                                        point: LatLng(
+                                          gpsState.lastKnownPosition!.latitude,
+                                          gpsState.lastKnownPosition!.longitude,
+                                        ),
+                                        width: 70,
+                                        height: 70,
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets
+                                                  .symmetric(
+                                                  horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue.shade700,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: const Text(
+                                                'Camión',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                            ),
+                                            const Icon(
+                                              Icons.local_shipping,
+                                              color: Colors.blue,
+                                              size: 38,
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ...orderMarkers,
                                   ],
                                 ),
                               ],
                             ),
+                            // Leyenda compacta arriba-izquierda (igual al web)
+                            Positioned(
+                              top: 12,
+                              left: 12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.95),
+                                  borderRadius: BorderRadius.circular(8),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                        color: Colors.black26, blurRadius: 4),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _legendRow(Colors.blue, Icons.local_shipping,
+                                        'Tu vehículo'),
+                                    _legendRow(Colors.red, Icons.location_on,
+                                        'Pendiente'),
+                                    _legendRow(Colors.orange,
+                                        Icons.location_on, 'En tránsito'),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // Botón GPS (recentrar)
                             Positioned(
                               bottom: 16,
                               right: 16,
-                              child: FloatingActionButton.small(
-                                heroTag: 'gps_btn',
-                                onPressed: () => context.read<GpsBloc>().add(AskGpsPermissions()),
-                                child: const Icon(Icons.my_location),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  FloatingActionButton.small(
+                                    heroTag: 'gps_recenter',
+                                    tooltip: 'Centrar en mi ubicación',
+                                    onPressed: () {
+                                      if (gpsState.lastKnownPosition != null) {
+                                        _mapController.move(
+                                          LatLng(
+                                            gpsState.lastKnownPosition!.latitude,
+                                            gpsState.lastKnownPosition!.longitude,
+                                          ),
+                                          15.0,
+                                        );
+                                      }
+                                      context
+                                          .read<GpsBloc>()
+                                          .add(AskGpsPermissions());
+                                    },
+                                    child: const Icon(Icons.my_location),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  FloatingActionButton.small(
+                                    heroTag: 'gps_fit',
+                                    tooltip: 'Ver toda la ruta',
+                                    onPressed: () {
+                                      if (orderMarkers.isNotEmpty) {
+                                        final points = orderMarkers
+                                            .map((m) => m.point)
+                                            .toList();
+                                        if (gpsState.lastKnownPosition != null) {
+                                          points.add(LatLng(
+                                            gpsState.lastKnownPosition!.latitude,
+                                            gpsState.lastKnownPosition!.longitude,
+                                          ));
+                                        }
+                                        if (points.length >= 2) {
+                                          _mapController.fitCamera(
+                                            CameraFit.bounds(
+                                              bounds: LatLngBounds.fromPoints(
+                                                  points),
+                                              padding: const EdgeInsets.all(50),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black87,
+                                    child: const Icon(Icons.zoom_out_map),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -392,6 +561,21 @@ class _RoutesPageState extends State<RoutesPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Fila de la leyenda del mapa (color + icono + texto).
+  Widget _legendRow(Color color, IconData icon, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1.5),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 4),
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+        ],
       ),
     );
   }

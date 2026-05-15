@@ -64,12 +64,28 @@ public class SecurityConfig {
     private WebFilter mockAuthFilter() {
         return (ServerWebExchange exchange, WebFilterChain chain) -> {
             String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
-            
+
             if (authHeader != null && authHeader.startsWith("Bearer mock_")) {
-                String role = authHeader.substring(12);
+                // Formato extendido (preferido):  Bearer mock_<USERNAME>__<ROLE>
+                //   Doble guion bajo como separador para no chocar con usernames
+                //   tipo "mct-001" que contienen un guion.
+                // Formato legacy:                Bearer mock_<ROLE>
+                //   (mantenido por compatibilidad con clientes existentes; usa
+                //   username = "admin" como antes).
+                String payload = authHeader.substring(12);  // recortar "Bearer mock_"
+                String username;
+                String role;
+                int sep = payload.indexOf("__");
+                if (sep > 0) {
+                    username = payload.substring(0, sep);
+                    role     = payload.substring(sep + 2);
+                } else {
+                    username = "admin";
+                    role     = payload;
+                }
                 List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
-                Authentication auth = new UsernamePasswordAuthenticationToken("admin", null, authorities);
-                
+                Authentication auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
+
                 ServerWebExchange mutatedExchange = exchange.mutate()
                         .request(builder -> builder.headers(h -> h.remove("Authorization")))
                         .build();

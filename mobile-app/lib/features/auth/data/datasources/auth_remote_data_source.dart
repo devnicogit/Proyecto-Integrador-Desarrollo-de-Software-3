@@ -8,52 +8,46 @@ abstract class AuthRemoteDataSource {
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  final Dio client;
-  final Dio? apiClient; // Optional backend client for fetching driver info
+  final Dio client;       // Keycloak (autenticación)
+  final Dio? apiClient;   // Backend REST (perfil de driver)
 
   AuthRemoteDataSourceImpl({required this.client, this.apiClient});
 
-  /// Decode a JWT token and extract its payload claims.
+  /// Decode a JWT payload (claims). Devuelve null si falla.
   Map<String, dynamic>? _decodeJwtPayload(String token) {
     try {
       final parts = token.split('.');
       if (parts.length != 3) return null;
-
       String payload = parts[1];
-      // Pad base64 if needed
       switch (payload.length % 4) {
-        case 2:
-          payload += '==';
-          break;
-        case 3:
-          payload += '=';
-          break;
+        case 2: payload += '=='; break;
+        case 3: payload += '=';  break;
       }
       final decoded = utf8.decode(base64Url.decode(payload));
       return json.decode(decoded) as Map<String, dynamic>;
-    } catch (e) {
-      print('JWT decode error: $e');
+    } catch (_) {
       return null;
     }
   }
 
-  /// Try to fetch driver ID from backend by matching username.
-  Future<String?> _fetchDriverIdFromBackend(String username) async {
+  /// Llama GET /drivers/me con el Bearer mock. Devuelve el id del driver
+  /// asociado al user autenticado, o null si no hay match (404) o falla.
+  Future<Map<String, dynamic>?> _fetchDriverProfile(String mockToken) async {
     if (apiClient == null) return null;
     try {
-      final response = await apiClient!.get('/drivers');
-      if (response.statusCode == 200) {
-        final List<dynamic> drivers = response.data;
-        for (final driver in drivers) {
-          final driverName = (driver['name'] ?? '').toString().toLowerCase();
-          if (driverName == username.toLowerCase() ||
-              driverName.contains(username.toLowerCase())) {
-            return driver['id']?.toString();
-          }
-        }
+      final resp = await apiClient!.get(
+        '/drivers/me',
+        options: Options(headers: {'Authorization': 'Bearer $mockToken'}),
+      );
+      if (resp.statusCode == 200 && resp.data is Map<String, dynamic>) {
+        return resp.data as Map<String, dynamic>;
       }
+    } on DioException catch (e) {
+      // 404 = no hay driver vinculado a ese username (Keycloak user nuevo
+      // sin registro en tabla drivers); el caller decide qué hacer.
+      print('[/drivers/me] ${e.response?.statusCode} ${e.message}');
     } catch (e) {
-      print('Error fetching drivers from backend: $e');
+      print('[/drivers/me] error: $e');
     }
     return null;
   }
@@ -61,6 +55,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> login(String username, String password) async {
     try {
+      // 1. Autenticar contra Keycloak (verifica credenciales).
       final response = await client.post(
         '/realms/ecoroute/protocol/openid-connect/token',
         data: {
@@ -69,70 +64,56 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           'username': username,
           'password': password,
         },
-        options: Options(
-          contentType: Headers.formUrlEncodedContentType,
-        ),
+        options: Options(contentType: Headers.formUrlEncodedContentType),
       );
 
-      if (response.statusCode == 200) {
-        final responseData = response.data;
-        final accessToken = responseData['access_token']?.toString() ?? '';
-
-        // Keycloak authenticated successfully -- credentials are valid.
-        // For local development, the real JWT issuer (10.0.2.2 / 192.168.1.x)
-        // won't match the backend's expected issuer (localhost), so we use
-        // a mock token that the backend's MockAuthFilter accepts.
-        const String token = 'mock_DRIVER';
-
-        // 1. Try to extract driver_id from JWT claims
-        String? driverId;
-
-        if (accessToken.isNotEmpty && accessToken.contains('.')) {
-          final claims = _decodeJwtPayload(accessToken);
-          if (claims != null) {
-            driverId = claims['driver_id']?.toString() ?? claims['driverId']?.toString();
-          }
-        }
-
-        // 2. If JWT didn't provide a usable numeric driver_id, try backend
-        if (driverId == null || int.tryParse(driverId) == null) {
-          final backendId = await _fetchDriverIdFromBackend(username);
-          if (backendId != null) {
-            driverId = backendId;
-          }
-        }
-
-        // 3. Fallback: hardcoded mapping for known demo users
-        if (driverId == null || int.tryParse(driverId) == null) {
-          driverId = '1';
-          if (username.toLowerCase() == 'carlos') driverId = '2';
-          if (username.toLowerCase() == 'maria') driverId = '3';
-          if (username.toLowerCase() == 'pedro') driverId = '4';
-        }
-
-        return UserModel(
-          id: driverId,
-          email: '$username@ecoroute.com',
-          name: username,
-          token: token,
-          roles: ['DRIVER'],
-        );
-      } else {
+      if (response.statusCode != 200) {
         throw ServerException('Error del servidor: ${response.statusCode}');
       }
+
+      // 2. Construir el mock token con el username REAL, así el backend
+      //    sabe quién es y puede resolver el driver vía /drivers/me.
+      //    Formato: mock_<username>__DRIVER  (doble guion bajo separador).
+      final mockToken = 'mock_${username}__DRIVER';
+
+      // 3. Pedir al backend el driver asociado a este usuario.
+      final profile = await _fetchDriverProfile(mockToken);
+
+      // 4. Si el backend mapea OK, usamos sus datos canónicos.
+      if (profile != null) {
+        final driverId = profile['id']?.toString() ?? '';
+        return UserModel(
+          id: driverId,
+          email: (profile['email'] ?? '').toString(),
+          name: '${profile['firstName'] ?? username} ${profile['lastName'] ?? ''}'.trim(),
+          token: mockToken,
+          roles: const ['DRIVER'],
+        );
+      }
+
+      // 5. Si NO hay driver vinculado, no inventamos uno. El backend
+      //    devolvió 404 → el user no está dado de alta como conductor.
+      //    Lanzamos un error específico para que la UI muestre el mensaje
+      //    correcto en lugar de mostrar datos de un driver ajeno.
+      throw ServerException(
+        'No hay un conductor vinculado al usuario "$username". '
+        'Pedile al administrador que cree el registro de conductor con '
+        'external_id="$username" en la base de datos.',
+      );
     } on DioException catch (e) {
       print('--- ERROR DE AUTENTICACION ---');
       print('Status: ${e.response?.statusCode}');
       print('Data: ${e.response?.data}');
       print('Mensaje: ${e.message}');
-
       String errorMsg = 'Error al conectar con el servidor de identidad';
       if (e.response?.statusCode == 401 || e.response?.statusCode == 400) {
-        errorMsg = 'Usuario o contrasena incorrectos';
+        errorMsg = 'Usuario o contraseña incorrectos';
       }
       throw ServerException(errorMsg);
+    } on ServerException {
+      rethrow;
     } catch (e) {
-      throw ServerException('Error interno al iniciar sesion: $e');
+      throw ServerException('Error interno al iniciar sesión: $e');
     }
   }
 }

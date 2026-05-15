@@ -38,4 +38,16 @@ public class R2dbcDriverRepository implements DriverRepository {
     public Mono<Void> deleteById(Long id) {
         return springDataDriverRepository.deleteById(id);
     }
+
+    @Override
+    public Mono<Driver> findByExternalId(String externalId) {
+        return springDataDriverRepository.findByExternalId(externalId)
+                .map(DriverPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Mono<Driver> findByEmail(String email) {
+        return springDataDriverRepository.findByEmail(email)
+                .map(DriverPersistenceMapper::toDomain);
+    }
 }
