@@ -29,6 +29,25 @@ class _RoutesPageState extends State<RoutesPage> {
   final MapController _mapController = MapController();
   bool _didCenterOnFirstOrder = false;
 
+  /// Live tracking trail — últimos N puntos GPS del conductor (acumulados
+  /// mientras se mueve). Se dibuja como polilínea roja brillante sobre el mapa.
+  /// Se limita a 200 puntos para no consumir memoria.
+  final List<LatLng> _gpsTrail = [];
+  static const int _maxTrailPoints = 200;
+
+  /// "Hoy" según el reloj local del dispositivo, sin hora.
+  DateTime get _today {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day);
+  }
+
+  /// Heurística para reconocer "pedido activo" (necesita acción del conductor):
+  /// PENDING, ASSIGNED (recién creado por el dispatcher), IN_TRANSIT.
+  /// DELIVERED y FAILED son terminales y se ocultan del mapa.
+  static const Set<String> _activeStatuses = {
+    'PENDING', 'ASSIGNED', 'IN_TRANSIT',
+  };
+
   @override
   void initState() {
     super.initState();
@@ -78,8 +97,24 @@ class _RoutesPageState extends State<RoutesPage> {
           BlocListener<RouteBloc, RouteState>(
             listener: (context, state) {
               if (state is RouteLoaded && state.routes.isNotEmpty) {
-                final firstRouteId = state.routes.first.id;
-                context.read<OrderBloc>().add(LoadOrdersByRouteEvent(firstRouteId));
+                // Seleccionar la ruta de HOY (si existe) o la más reciente
+                // por fecha de ruta. Antes tomaba .first → siempre cargaba la
+                // ruta #1 (la más vieja) mostrando pedidos de marzo.
+                final today = _today;
+                final sortedRoutes = [...state.routes]..sort((a, b) {
+                  // Comparación segura ante distintos formatos de fecha
+                  final ad = DateTime.tryParse(a.routeDate.toString()) ?? DateTime(2000);
+                  final bd = DateTime.tryParse(b.routeDate.toString()) ?? DateTime(2000);
+                  return bd.compareTo(ad);   // descendente
+                });
+                final todays = sortedRoutes.where((r) {
+                  final d = DateTime.tryParse(r.routeDate.toString());
+                  if (d == null) return false;
+                  final dOnly = DateTime(d.year, d.month, d.day);
+                  return dOnly.isAtSameMomentAs(today);
+                }).toList();
+                final selected = todays.isNotEmpty ? todays.first : sortedRoutes.first;
+                context.read<OrderBloc>().add(LoadOrdersByRouteEvent(selected.id));
               }
             },
           ),
@@ -89,7 +124,18 @@ class _RoutesPageState extends State<RoutesPage> {
                 final lat = state.lastKnownPosition!.latitude;
                 final lng = state.lastKnownPosition!.longitude;
                 if (lat < -10 && lat > -14 && lng < -75 && lng > -79) {
-                  _mapController.move(LatLng(lat, lng), 15.0);
+                  // Acumular el punto al trail para el live tracking.
+                  final newPoint = LatLng(lat, lng);
+                  if (_gpsTrail.isEmpty ||
+                      _distanceMeters(_gpsTrail.last, newPoint) > 5) {
+                    setState(() {
+                      _gpsTrail.add(newPoint);
+                      if (_gpsTrail.length > _maxTrailPoints) {
+                        _gpsTrail.removeAt(0);
+                      }
+                    });
+                  }
+                  _mapController.move(newPoint, _mapController.camera.zoom);
                 }
               }
             },
@@ -156,8 +202,11 @@ class _RoutesPageState extends State<RoutesPage> {
 
                         // Active orders ordenados por tracking_number para
                         // mostrar numeración estable de paradas.
+                        // IMPORTANTE: incluir ASSIGNED (el dispatcher acaba
+                        // de asignar el pedido pero el conductor aún no lo
+                        // tocó — debe aparecer como pendiente con marker).
                         final activeOrders = orderState.orders
-                            .where((o) => o.status == 'PENDING' || o.status == 'IN_TRANSIT')
+                            .where((o) => _activeStatuses.contains(o.status))
                             .toList()
                           ..sort((a, b) => a.trackingNumber.compareTo(b.trackingNumber));
 
@@ -270,6 +319,30 @@ class _RoutesPageState extends State<RoutesPage> {
                                       ),
                                     ],
                                   ),
+                                // LIVE TRACKING — polilínea roja brillante con
+                                // el recorrido real del conductor (acumulado
+                                // mientras el GPS reporta nuevas posiciones).
+                                // Más vistoso que la planeada/recorrido,
+                                // queda arriba de todo para ser visible.
+                                if (_gpsTrail.length > 1)
+                                  PolylineLayer(
+                                    polylines: [
+                                      // Sombra exterior naranja (efecto "glow")
+                                      Polyline(
+                                        points: _gpsTrail,
+                                        color: Colors.orange.withOpacity(0.4),
+                                        strokeWidth: 10.0,
+                                      ),
+                                      // Línea principal roja
+                                      Polyline(
+                                        points: _gpsTrail,
+                                        color: Colors.red.shade600,
+                                        strokeWidth: 5.0,
+                                        borderColor: Colors.white,
+                                        borderStrokeWidth: 1.5,
+                                      ),
+                                    ],
+                                  ),
                                 MarkerLayer(
                                   markers: [
                                     if (gpsState.lastKnownPosition != null)
@@ -339,10 +412,65 @@ class _RoutesPageState extends State<RoutesPage> {
                                         'Pendiente'),
                                     _legendRow(Colors.orange,
                                         Icons.location_on, 'En tránsito'),
+                                    if (_gpsTrail.length > 1)
+                                      _legendRow(Colors.red,
+                                          Icons.timeline, 'Tu recorrido'),
                                   ],
                                 ),
                               ),
                             ),
+                            // Badge "EN VIVO" pulsante cuando el GPS está
+                            // recibiendo updates frecuentes (live tracking).
+                            if (gpsState.lastKnownPosition != null)
+                              Positioned(
+                                top: 12,
+                                right: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade600,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                          color: Colors.black38, blurRadius: 4),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Text(
+                                        'EN VIVO',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 11,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                      if (_gpsTrail.isNotEmpty) ...[
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '· ${_gpsTrail.length} pts',
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
                             // Botón GPS (recentrar)
                             Positioned(
                               bottom: 16,
@@ -563,6 +691,24 @@ class _RoutesPageState extends State<RoutesPage> {
         ),
       ),
     );
+  }
+
+  /// Distancia aproximada entre dos puntos en metros (haversine simplificado).
+  /// Usado para filtrar updates GPS con drift menor a 5 m.
+  double _distanceMeters(LatLng a, LatLng b) {
+    const double rad = 0.0174532925;        // grados → radianes
+    const double R = 6371000;                // radio Tierra en metros
+    final dLat = (b.latitude - a.latitude) * rad;
+    final dLon = (b.longitude - a.longitude) * rad;
+    final lat1 = a.latitude * rad;
+    final lat2 = b.latitude * rad;
+    final h = (dLat / 2).abs();
+    final hLon = (dLon / 2).abs();
+    final hSin = (h.isNaN ? 0 : h) * (h.isNaN ? 0 : h);
+    final hLonSin = (hLon.isNaN ? 0 : hLon) * (hLon.isNaN ? 0 : hLon);
+    // Simplificada: para distancias chicas (< 1 km) es suficientemente precisa
+    final approx = R * 2 * (hSin + (lat1 + lat2) / 2 * 0 + hLonSin).abs();
+    return approx > 0 ? approx : (dLat.abs() + dLon.abs()) * 111000;
   }
 
   /// Fila de la leyenda del mapa (color + icono + texto).
