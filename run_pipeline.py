@@ -389,24 +389,28 @@ def phase_infra(dry: bool) -> None:
         run(f'docker cp "{seed}" ecoroute-db:/seed.sql',     dry=dry, check=False)
         run("docker exec ecoroute-db psql -U user -d ecoroute -f /schema.sql", dry=dry, check=False)
         run("docker exec ecoroute-db psql -U user -d ecoroute -f /seed.sql",   dry=dry, check=False)
-        # Verificar idempotencia: el seed debe terminar con exactamente 150 pre-test orders
+        # Verificar idempotencia: el seed debe terminar con 150 pre + 150 post = 300 total
         if not dry:
             out = run(
                 "docker exec ecoroute-db psql -U user -d ecoroute -At -c "
-                "\"SELECT COUNT(*) FROM orders WHERE created_at < '2026-04-19'\"",
+                "\"SELECT "
+                "  (SELECT COUNT(*) FROM orders WHERE created_at < '2026-04-19') AS pre, "
+                "  (SELECT COUNT(*) FROM orders WHERE created_at >= '2026-04-19') AS post\"",
                 capture=True, check=False,
             ).strip()
             try:
-                pre_count = int(out.splitlines()[-1])
-                if pre_count == 150:
-                    log("OK", f"Seed idempotente verificado: {pre_count} orders pre-test (esperado: 150)")
-                elif pre_count > 150 and pre_count % 150 == 0:
-                    log("ERR", f"Datos DUPLICADOS: {pre_count} orders pre-test (esperado 150, hay {pre_count//150}x)")
-                    print(f"     {C.WARN}→ El seed se cargó {pre_count//150} veces sin TRUNCATE previo.{C.OFF}")
+                # Salida: "150|150"
+                parts = out.splitlines()[-1].split("|")
+                pre_count, post_count = int(parts[0]), int(parts[1])
+                if pre_count == 150 and post_count == 150:
+                    log("OK", f"Seed idempotente verificado: {pre_count} pre-test + {post_count} post-test (esperado 150/150)")
+                elif pre_count > 150 or post_count > 150:
+                    log("ERR", f"Datos DUPLICADOS: pre={pre_count}, post={post_count} (esperado 150/150)")
+                    print(f"     {C.WARN}→ El seed se cargó sin TRUNCATE previo.{C.OFF}")
                     print(f"     {C.WARN}→ Para limpiar: actualizá el repo (git pull) y volvé a correr el pipeline.{C.OFF}")
-                    print(f"     {C.WARN}→ O manual: docker exec ecoroute-db psql -U user -d ecoroute -c \"TRUNCATE orders, routes RESTART IDENTITY CASCADE\"{C.OFF}")
+                    print(f"     {C.WARN}→ O manual: docker exec ecoroute-db psql -U user -d ecoroute -c \"TRUNCATE orders, routes, delivery_proofs, order_status_history RESTART IDENTITY CASCADE\"{C.OFF}")
                 else:
-                    log("WARN", f"Conteo pre-test inesperado: {pre_count} (esperado 150)")
+                    log("WARN", f"Conteo inesperado: pre={pre_count}, post={post_count} (esperado 150/150)")
             except (ValueError, IndexError):
                 log("WARN", f"No pude parsear conteo de orders: {out[:80]!r}")
     else:

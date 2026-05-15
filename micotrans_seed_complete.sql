@@ -8,6 +8,7 @@
 --
 -- Post-test (20/04/2026 - 31/05/2026): 150 registros generados por el sistema
 --   KPIs objetivo: IID ~96% | CHR ~93% | TDE ~95%
+--   Mismo n=150 que pre-test para comparación paired en t-Student.
 --
 -- IDEMPOTENTE: este seed se puede re-ejecutar sin duplicar datos.
 -- El cleanup inicial trunca todas las tablas de datos antes de insertar.
@@ -1254,9 +1255,14 @@ DECLARE
     post_idx INT := 0;
 BEGIN
 
+    -- Generamos EXACTAMENTE 150 órdenes post-test (mismo n que pre-test).
+    -- Esto da una comparación pre/post directamente apareada en t-Student.
     FOR d IN
         SELECT generate_series(DATE '2026-04-20', DATE '2026-05-31', INTERVAL '1 day')::DATE
     LOOP
+        -- Cortar el loop exterior si ya llenamos las 150 (no genera ruta vacía).
+        EXIT WHEN post_idx >= 150;
+
         rec_count := 3 + ((EXTRACT(DAY FROM d)::INT + EXTRACT(MONTH FROM d)::INT * 7) % 4);
 
         SELECT id INTO drv_id FROM drivers WHERE external_id LIKE 'mct-%' ORDER BY id OFFSET ((EXTRACT(DAY FROM d)::INT) % 5) LIMIT 1;
@@ -1269,6 +1275,9 @@ BEGIN
         RETURNING id INTO route_id;
 
         FOR i IN 1..rec_count LOOP
+            -- Cortar el loop interno también; queda la ruta del día con menos
+            -- entregas pero ya alcanzamos las 150.
+            EXIT WHEN post_idx >= 150;
             post_idx := post_idx + 1;
             rnd := ((EXTRACT(DAY FROM d)::INT * 7 + i * 13) % 100);
             is_valid_iid := rnd < target_iid_pct;
