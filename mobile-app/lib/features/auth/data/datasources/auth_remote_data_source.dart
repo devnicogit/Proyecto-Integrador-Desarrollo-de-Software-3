@@ -56,15 +56,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<UserModel> login(String username, String password) async {
     try {
       // 1. Autenticar contra Keycloak (verifica credenciales).
+      // IMPORTANTE: el body DEBE ser una String form-urlencoded, no un Map.
+      // Dio con `data: Map + contentType: form-urlencoded` puede igual
+      // serializar como JSON, lo que hace que Keycloak interprete la request
+      // como "client-secret auth" y devuelva invalid_user_credentials aunque
+      // las credenciales sean correctas.
+      final body = [
+        'client_id=mobile-app',
+        'grant_type=password',
+        'username=${Uri.encodeQueryComponent(username)}',
+        'password=${Uri.encodeQueryComponent(password)}',
+      ].join('&');
       final response = await client.post(
         '/realms/ecoroute/protocol/openid-connect/token',
-        data: {
-          'client_id': 'mobile-app',
-          'grant_type': 'password',
-          'username': username,
-          'password': password,
-        },
-        options: Options(contentType: Headers.formUrlEncodedContentType),
+        data: body,
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+          headers: const {'Content-Type': 'application/x-www-form-urlencoded'},
+        ),
       );
 
       if (response.statusCode != 200) {
