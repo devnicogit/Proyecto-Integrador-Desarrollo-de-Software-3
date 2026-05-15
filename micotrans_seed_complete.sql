@@ -8,7 +8,30 @@
 --
 -- Post-test (20/04/2026 - 31/05/2026): 150 registros generados por el sistema
 --   KPIs objetivo: IID ~96% | CHR ~93% | TDE ~95%
+--
+-- IDEMPOTENTE: este seed se puede re-ejecutar sin duplicar datos.
+-- El cleanup inicial trunca todas las tablas de datos antes de insertar.
 -- ==========================================================
+
+-- ============================================================
+-- 0. CLEANUP (idempotencia)
+--    Borra TODOS los datos previos para que el seed sea seguro de
+--    re-ejecutar. CASCADE respeta las FKs. RESTART IDENTITY resetea
+--    los SERIAL/BIGSERIAL a 1 (los GR-1001..GR-1300 mantienen su número).
+-- ============================================================
+DO $$
+BEGIN
+    TRUNCATE TABLE
+        orders, routes, drivers, vehicles, hubs, products,
+        delivery_proofs, order_status_history, order_items,
+        vehicle_gps_history, fuel_logs, vehicle_maintenance_logs,
+        route_expenses, incidents, driver_contracts, driver_shifts
+    RESTART IDENTITY CASCADE;
+    RAISE NOTICE 'Cleanup OK: tablas vaciadas, identidades reseteadas';
+EXCEPTION
+    WHEN undefined_table THEN
+        RAISE NOTICE 'Algunas tablas no existen aún (primera carga); continuando';
+END $$;
 
 BEGIN;
 
