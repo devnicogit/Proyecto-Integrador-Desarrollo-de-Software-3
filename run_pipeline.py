@@ -350,13 +350,23 @@ def phase_preflight(dry: bool, skip_emulator: bool = False, skip_drive: bool = F
 # A. Infraestructura
 # --------------------------------------------------------------------------- #
 
-def phase_infra(dry: bool) -> None:
+def phase_infra(dry: bool, reset: bool = False) -> None:
     section("A. INFRAESTRUCTURA — Docker + Keycloak + BD + LocalStack")
 
-    step("A.1  docker compose up -d --build (rebuild imágenes si el código cambió)")
     if not has_tool("docker"):
         log("WARN", "docker no instalado; saltando A.")
         return
+
+    if reset:
+        step("A.0  RESET — bajar todos los contenedores y borrar volúmenes (BD limpia)")
+        # -v borra los volúmenes nombrados (postgres_data, keycloak_data).
+        # Sin esto, los datos de Keycloak y Postgres persisten entre runs y
+        # los TRUNCATE/setup re-aplican sobre datos ya existentes.
+        run(["docker", "compose", "down", "-v", "--remove-orphans"],
+            cwd=ROOT, dry=dry, check=False, timeout=120)
+        log("OK", "Contenedores y volúmenes borrados — arrancando de cero")
+
+    step("A.1  docker compose up -d --build (rebuild imágenes si el código cambió)")
     # --build es CRÍTICO en PCs que cachearon una imagen vieja del backend o
     # del web-admin. Sin esto, los fixes nuevos (/drivers/me, MockAuthFilter
     # extendido, dashboard responsive, etc.) NO se aplican y la app rompe
@@ -448,12 +458,20 @@ def phase_infra(dry: bool) -> None:
 # B. Emulador + app móvil
 # --------------------------------------------------------------------------- #
 
-def phase_emulator(dry: bool) -> None:
+def phase_emulator(dry: bool, reset: bool = False) -> None:
     section("B. EMULADOR ANDROID + APP FLUTTER")
 
     if not ADB_PATH.exists():
         log("WARN", f"adb no encontrado en {ADB_PATH}; saltando B")
         return
+
+    if reset:
+        step("B.0  RESET — desinstalar la app (si está) para forzar reinstalación")
+        # Sólo intenta si hay device conectado; si no, lo dejamos a B.6 después
+        # del boot. Esto cubre el caso de pipeline rerun con AVD ya corriendo.
+        run([str(ADB_PATH), "uninstall", APP_PACKAGE],
+            check=False, capture=True, timeout=30)
+        log("OK", "App desinstalada (o no estaba)")
 
     step("B.1  Listar AVDs disponibles")
     if EMULATOR_PATH.exists():
@@ -1000,7 +1018,8 @@ def main() -> None:
         description="Orquestador end-to-end del proyecto EcoRoute / Tesis MICOTRANS",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Ejemplos:\n"
-               "  python run_pipeline.py                       # ejecuta TODO\n"
+               "  python run_pipeline.py                       # ejecuta TODO (idempotente, rápido)\n"
+               "  python run_pipeline.py --reset               # BORRA TODO y recrea desde cero\n"
                "  python run_pipeline.py --only drive          # sólo tesis Drive\n"
                "  python run_pipeline.py --skip-infra          # sin Docker (asume todo ya arriba)\n"
                "  python run_pipeline.py --skip-emulator --skip-captures   # sólo docs + pack\n"
@@ -1017,6 +1036,11 @@ def main() -> None:
                     help="Mostrar comandos sin ejecutarlos")
     ap.add_argument("--skip-preflight", action="store_true",
                     help="No validar Docker / Python deps / AVD antes de empezar")
+    ap.add_argument("--reset", action="store_true",
+                    help="Modo destructivo: borra contenedores+volúmenes Docker, "
+                         "desinstala la app del AVD, borra caches, y recrea TODO "
+                         "desde cero (TRUNCATE BD, setup-keycloak completo, etc.). "
+                         "Tarda ~5 min más pero garantiza estado limpio.")
     args = ap.parse_args()
 
     hr("═")
@@ -1024,9 +1048,31 @@ def main() -> None:
     print(f"  Root:       {ROOT}")
     print(f"  Tesis dir:  {TESIS}")
     print(f"  Modo:       {'DRY RUN' if args.dry_run else 'EJECUCIÓN REAL'}")
+    if args.reset:
+        print(f"  {C.WARN}{C.BOLD}⚠ MODO RESET: contenedores Docker, volúmenes BD y APP del AVD{C.OFF}")
+        print(f"  {C.WARN}             serán BORRADOS y recreados desde cero.{C.OFF}")
     if args.only:
         print(f"  Fase única: {args.only}")
     hr("═")
+
+    if args.reset and not args.dry_run:
+        # Cleanup de caches de scripts (no Docker — eso lo hace phase_infra)
+        section("RESET — Limpieza previa de caches y artefactos")
+        cleanup_targets = [
+            TESIS / ".pdf_kevin_extract.txt",      # cache extracción Drive
+            ROOT / "EcoRoute_TesisPack_Total_v5.zip",
+            ROOT / "EcoRoute_TesisPack_Total_v4.zip",
+            ROOT / "EcoRoute_TesisPack_Total_v3.zip",
+            Path(r"C:\tmp\emulator.log"),
+            Path(r"C:\tmp\kevin_drive_current.docx"),
+        ]
+        for p in cleanup_targets:
+            try:
+                if p.exists():
+                    p.unlink()
+                    log("OK", f"borrado: {p}")
+            except Exception as e:
+                log("WARN", f"no pude borrar {p}: {e}")
 
     # Fase 0 — preflight (a menos que pidas saltarla o --only)
     if not args.only and not args.skip_preflight and not args.dry_run:
@@ -1047,6 +1093,9 @@ def main() -> None:
         try:
             if name == "git":
                 fn(args.dry_run, args.no_push)
+            elif name in ("infra", "emulator"):
+                # Estas fases respetan --reset (BD limpia, app desinstalada)
+                fn(args.dry_run, reset=args.reset)
             else:
                 fn(args.dry_run)
         except KeyboardInterrupt:
