@@ -353,11 +353,17 @@ def phase_preflight(dry: bool, skip_emulator: bool = False, skip_drive: bool = F
 def phase_infra(dry: bool) -> None:
     section("A. INFRAESTRUCTURA — Docker + Keycloak + BD + LocalStack")
 
-    step("A.1  docker compose up -d (5 contenedores: postgres, keycloak, localstack, backend, web-admin)")
+    step("A.1  docker compose up -d --build (rebuild imágenes si el código cambió)")
     if not has_tool("docker"):
         log("WARN", "docker no instalado; saltando A.")
         return
-    run(["docker", "compose", "up", "-d"], cwd=ROOT, dry=dry, timeout=300)
+    # --build es CRÍTICO en PCs que cachearon una imagen vieja del backend o
+    # del web-admin. Sin esto, los fixes nuevos (/drivers/me, MockAuthFilter
+    # extendido, dashboard responsive, etc.) NO se aplican y la app rompe
+    # con bugs ya arreglados en el código fuente.
+    # `--build` es idempotente: si las capas Docker no cambiaron, reusa cache
+    # en segundos. Solo recompila si hay diferencias reales en el código.
+    run(["docker", "compose", "up", "-d", "--build"], cwd=ROOT, dry=dry, timeout=600)
 
     step("A.2  Esperar a que la BD esté healthy")
     if dry:
