@@ -21,7 +21,7 @@ const INDICATORS: { code: KpiCode; title: string; subtitle: string; color: strin
 ];
 
 const PRE_TEST = { start: '2026-03-02', end: '2026-04-18' };
-const POST_TEST = { start: '2026-04-20', end: '2026-05-31' };
+const POST_TEST = { start: '2026-04-20', end: '2026-05-16' };
 
 type Phase = 'PRE' | 'POST';
 

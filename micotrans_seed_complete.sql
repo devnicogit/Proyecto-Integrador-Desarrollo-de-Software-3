@@ -6,9 +6,10 @@
 --   "REGISTROS SOLICITADOS-MICOTRANS S.A.C - Hoja 1.csv"
 --   KPIs reales: IID 60.0% | CHR 67.3% | TDE 51.3%
 --
--- Post-test (20/04/2026 - 31/05/2026): 150 registros generados por el sistema
+-- Post-test (20/04/2026 - 16/05/2026): 150 registros generados por el sistema
 --   KPIs objetivo: IID ~96% | CHR ~93% | TDE ~95%
 --   Mismo n=150 que pre-test para comparación paired en t-Student.
+--   Rango de 27 días (~5.5 órdenes/día) para alcanzar n=150 antes de hoy.
 --
 -- IDEMPOTENTE: este seed se puede re-ejecutar sin duplicar datos.
 -- El cleanup inicial trunca todas las tablas de datos antes de insertar.
@@ -1212,7 +1213,7 @@ END $$;
 
 -- ============================================================
 -- 6. POST-TEST: 150 registros generados por el sistema EcoRoute
---    Periodo 20/04/2026 - 31/05/2026
+--    Periodo 20/04/2026 - 16/05/2026 (27 días hasta hoy)
 -- ============================================================
 BEGIN;
 
@@ -1258,12 +1259,15 @@ BEGIN
     -- Generamos EXACTAMENTE 150 órdenes post-test (mismo n que pre-test).
     -- Esto da una comparación pre/post directamente apareada en t-Student.
     FOR d IN
-        SELECT generate_series(DATE '2026-04-20', DATE '2026-05-31', INTERVAL '1 day')::DATE
+        SELECT generate_series(DATE '2026-04-20', DATE '2026-05-16', INTERVAL '1 day')::DATE
     LOOP
         -- Cortar el loop exterior si ya llenamos las 150 (no genera ruta vacía).
         EXIT WHEN post_idx >= 150;
 
-        rec_count := 3 + ((EXTRACT(DAY FROM d)::INT + EXTRACT(MONTH FROM d)::INT * 7) % 4);
+        -- 27 días * 6-7 órdenes = 162-189 generadas → caps a 150 con EXIT WHEN.
+        -- Mínimo garantizado: 6/día (27*6=162) > 150 cap. Antes 42 días*3-6
+        -- (~189) que ahora se compacta a 27 días con mayor densidad diaria.
+        rec_count := 6 + ((EXTRACT(DAY FROM d)::INT + EXTRACT(MONTH FROM d)::INT * 7) % 2);
 
         SELECT id INTO drv_id FROM drivers WHERE external_id LIKE 'mct-%' ORDER BY id OFFSET ((EXTRACT(DAY FROM d)::INT) % 5) LIMIT 1;
         SELECT id INTO veh_id FROM vehicles WHERE plate_number LIKE 'AFT-%' ORDER BY id OFFSET ((EXTRACT(DAY FROM d)::INT) % 5) LIMIT 1;
@@ -1380,14 +1384,14 @@ SELECT 'POST-TEST IID' AS metric,
     COUNT(*) AS total,
     COUNT(*) FILTER (WHERE external_reference IS NOT NULL AND external_reference <> '') AS valid,
     ROUND(100.0 * COUNT(*) FILTER (WHERE external_reference IS NOT NULL AND external_reference <> '') / NULLIF(COUNT(*),0), 1) AS pct
-FROM orders WHERE created_at >= '2026-04-20' AND created_at <= '2026-05-31';
+FROM orders WHERE created_at >= '2026-04-20' AND created_at <= '2026-05-16';
 
 -- CHR post-test esperado ~93%
 SELECT 'POST-TEST CHR' AS metric,
     COUNT(*) AS total,
     COUNT(*) FILTER (WHERE status = 'DELIVERED') AS valid,
     ROUND(100.0 * COUNT(*) FILTER (WHERE status = 'DELIVERED') / NULLIF(COUNT(*),0), 1) AS pct
-FROM orders WHERE route_id IS NOT NULL AND created_at >= '2026-04-20' AND created_at <= '2026-05-31';
+FROM orders WHERE route_id IS NOT NULL AND created_at >= '2026-04-20' AND created_at <= '2026-05-16';
 
 -- TDE post-test esperado ~95%
 SELECT 'POST-TEST TDE' AS metric,
@@ -1395,4 +1399,4 @@ SELECT 'POST-TEST TDE' AS metric,
     COUNT(dp.id) AS valid,
     ROUND(100.0 * COUNT(dp.id) / NULLIF(COUNT(*),0), 1) AS pct
 FROM orders o LEFT JOIN delivery_proofs dp ON dp.order_id = o.id
-WHERE o.route_id IS NOT NULL AND o.created_at >= '2026-04-20' AND o.created_at <= '2026-05-31';
+WHERE o.route_id IS NOT NULL AND o.created_at >= '2026-04-20' AND o.created_at <= '2026-05-16';

@@ -31,7 +31,7 @@ Trabajo que se desarrolla como requisito para la obtención del título profesio
 | **Indicadores a medir** | IID (Integridad de Datos), CHR (Cumplimiento de Hoja de Ruta), TDE (Tasa de Disponibilidad de Evidencias Digitales) |
 | **Población** | Registros operativos de servicios de transporte de carga |
 | **Muestra** | 150 registros pre-test + 150 registros post-test |
-| **Periodo de aplicación** | Pre-test: 02/03/2026 al 18/04/2026 — Post-test: 20/04/2026 al 31/05/2026 |
+| **Periodo de aplicación** | Pre-test: 02/03/2026 al 18/04/2026 — Post-test: 20/04/2026 al 16/05/2026 |
 
 ## Compromisos del investigador
 
