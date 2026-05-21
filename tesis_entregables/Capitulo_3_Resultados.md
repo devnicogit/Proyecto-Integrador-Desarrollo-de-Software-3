@@ -40,7 +40,9 @@ El presente capítulo presenta los resultados estadísticos obtenidos tras la ap
 
 **Figura 14. Comparativo Pre-Test vs Post-Test — IID**
 
-*Gráfico de barras (elaborado en Excel) que muestra las medias del IID por fase del estudio. La diferencia de +38.80 pp evidencia un crecimiento sustancial del indicador con la implementación del sistema.*
+![Figura 14](figuras_capturas/FIG_14_BARRAS_IID.png)
+
+*Fuente: Elaboración propia. Gráfico de barras 3D que muestra las medias del IID por fase del estudio. La diferencia de +38.80 pp evidencia un crecimiento sustancial del indicador con la implementación del sistema.*
 
 ---
 
@@ -65,7 +67,9 @@ El presente capítulo presenta los resultados estadísticos obtenidos tras la ap
 
 **Figura 15. Comparativo Pre-Test vs Post-Test — CHR**
 
-*Gráfico de barras comparativo del CHR antes y después de la implementación del aplicativo.*
+![Figura 15](figuras_capturas/FIG_15_BARRAS_CHR.png)
+
+*Fuente: Elaboración propia. Gráfico de barras 3D comparativo del CHR antes y después de la implementación del aplicativo. Incremento absoluto de +27.85 pp.*
 
 ---
 
@@ -90,7 +94,9 @@ El presente capítulo presenta los resultados estadísticos obtenidos tras la ap
 
 **Figura 16. Comparativo Pre-Test vs Post-Test — TDE**
 
-*Gráfico de barras comparativo del TDE antes y después de la implementación del aplicativo.*
+![Figura 16](figuras_capturas/FIG_16_BARRAS_TDE.png)
+
+*Fuente: Elaboración propia. Gráfico de barras 3D comparativo del TDE antes y después de la implementación del aplicativo. Incremento absoluto de +41.61 pp (el mayor de los tres indicadores).*
 
 ---
 
@@ -143,9 +149,25 @@ El análisis inferencial verifica si los incrementos observados son **estadísti
 
 **Decisión metodológica**: La prueba T de Student es **robusta a desviaciones moderadas de normalidad para n ≥ 20** por el Teorema del Límite Central (Hernández-Sampieri, 2014). Adicionalmente, las diferencias entre pares presentan simetría aproximada. Por lo tanto, se procede con la **prueba T de Student pareada** como análisis principal. Como complemento se reporta también la prueba de **Wilcoxon** (no paramétrica) en el §3.2.3, confirmando los resultados.
 
-**Figuras 17, 18 y 19. Histogramas con curva normal — IID, CHR, TDE**
+**Figura 17. Histograma con curva normal — IID (Pre-Test y Post-Test)**
 
-*Histogramas generados con SPSS (Analizar → Frecuencias → Gráficos → Histogramas con curva normal) que muestran la distribución de los porcentajes diarios por indicador y por fase del estudio.*
+![Figura 17a — IID Pre-Test](figuras_capturas/FIG_17_HIST_IID_pre.png)
+
+![Figura 17b — IID Post-Test](figuras_capturas/FIG_67_HIST_IID_post.png)
+
+**Figura 18. Histograma con curva normal — CHR (Pre-Test y Post-Test)**
+
+![Figura 18a — CHR Pre-Test](figuras_capturas/FIG_18_HIST_CHR_pre.png)
+
+![Figura 18b — CHR Post-Test](figuras_capturas/FIG_68_HIST_CHR_post.png)
+
+**Figura 19. Histograma con curva normal — TDE (Pre-Test y Post-Test)**
+
+![Figura 19a — TDE Pre-Test](figuras_capturas/FIG_19_HIST_TDE_pre.png)
+
+![Figura 19b — TDE Post-Test](figuras_capturas/FIG_69_HIST_TDE_post.png)
+
+*Fuente: Elaboración propia. Histogramas generados siguiendo el procedimiento SPSS (Analizar → Frecuencias → Gráficos → Histogramas con curva normal) que muestran la distribución de los porcentajes diarios por indicador y por fase del estudio.*
 
 ---
 
@@ -204,7 +226,9 @@ Aplicada por cada indicador con los siguientes parámetros:
 
 **Figura 20. Curva de T-Student para el indicador IID**
 
-*Como se observa en la Figura 20, el valor calculado del estadístico T (10.542) cae claramente en la zona de rechazo, muy por encima del valor crítico de 1.7139 con 23 grados de libertad y un nivel de confianza del 95%.*
+![Figura 20](figuras_capturas/FIG_20_TSTUDENT_IID.png)
+
+*Fuente: Elaboración propia. Como se observa, el valor calculado del estadístico T (Tc = 10.542) cae claramente en la zona de rechazo (área sombreada en rojo), muy por encima del valor crítico de 1.7139 con 23 grados de libertad y un nivel de confianza del 95%.*
 
 **Conclusión del contraste — IID**: Como se observa en la Tabla 29 y en la Figura 20, el valor calculado del estadístico T es **10.542**, el cual es **mayor al valor crítico de 1.7139** con 23 grados de libertad y nivel de confianza del 95%. Por lo tanto, **se rechaza la hipótesis nula** (H₀: IID_A ≥ IID_D) y **se acepta la hipótesis alterna** (Hₐ: IID_D > IID_A). En consecuencia, **se afirma que el aplicativo móvil incrementa significativamente la integridad de los datos registrados (IID) en la gestión administrativa de Grupo Micotrans S.A.C.**, con un tamaño del efecto muy grande (d de Cohen = 2.152).
 
@@ -249,7 +273,9 @@ Aplicada por cada indicador con los siguientes parámetros:
 
 **Figura 21. Curva de T-Student para el indicador CHR**
 
-*El valor calculado (9.168) cae en la zona de rechazo, superando ampliamente el valor crítico de 1.7139.*
+![Figura 21](figuras_capturas/FIG_21_TSTUDENT_CHR.png)
+
+*Fuente: Elaboración propia. El valor calculado (Tc = 9.168) cae en la zona de rechazo (área sombreada), superando ampliamente el valor crítico de 1.7139.*
 
 **Conclusión del contraste — CHR**: Como se muestra en la Tabla 31 y la Figura 21, el valor calculado del estadístico T es **9.168**, el cual es **mayor al valor crítico de 1.7139** con 23 grados de libertad y nivel de confianza del 95%. Por lo tanto, **se rechaza la hipótesis nula** y **se acepta la hipótesis alterna**. En consecuencia, **se afirma que el aplicativo móvil incrementa significativamente el cumplimiento de la hoja de ruta (CHR) en la gestión administrativa de Grupo Micotrans S.A.C.**, con un tamaño del efecto muy grande (d de Cohen = 1.871).
 
@@ -294,7 +320,9 @@ Aplicada por cada indicador con los siguientes parámetros:
 
 **Figura 22. Curva de T-Student para el indicador TDE**
 
-*El valor calculado (10.329) cae en la zona de rechazo, muy por encima del valor crítico de 1.7139.*
+![Figura 22](figuras_capturas/FIG_22_TSTUDENT_TDE.png)
+
+*Fuente: Elaboración propia. El valor calculado (Tc = 10.329) cae en la zona de rechazo, muy por encima del valor crítico de 1.7139.*
 
 **Conclusión del contraste — TDE**: Como se muestra en la Tabla 33 y la Figura 22, el valor calculado del estadístico T es **10.329**, el cual es **mayor al valor crítico de 1.7139** con 23 grados de libertad y nivel de confianza del 95%. Por lo tanto, **se rechaza la hipótesis nula** y **se acepta la hipótesis alterna**. En consecuencia, **se afirma que el aplicativo móvil incrementa significativamente la tasa de disponibilidad de evidencias digitales (TDE) en la gestión administrativa de Grupo Micotrans S.A.C.**, con un tamaño del efecto muy grande (d de Cohen = 2.108).
 

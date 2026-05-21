@@ -149,6 +149,24 @@ def convert_md(md_path: Path, docx_path: Path):
             i += 1
             continue
 
+        # Imágenes markdown: ![alt](path)
+        img_match = re.match(r'^\s*!\[([^\]]*)\]\(([^)]+)\)\s*$', stripped)
+        if img_match:
+            alt, img_path = img_match.group(1), img_match.group(2)
+            # Resolver path relativo al markdown
+            full_path = (THIS_DIR / img_path) if not Path(img_path).is_absolute() else Path(img_path)
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            if full_path.exists():
+                try:
+                    p.add_run().add_picture(str(full_path), width=Inches(6.0))
+                except Exception as e:
+                    p.add_run(f"[Imagen no embebida: {img_path} — {e}]")
+            else:
+                p.add_run(f"[Imagen no encontrada: {img_path}]")
+            i += 1
+            continue
+
         # Tables
         if stripped.startswith('|') and stripped.endswith('|'):
             rows, end = parse_md_table(lines, i)
