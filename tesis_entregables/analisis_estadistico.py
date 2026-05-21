@@ -178,10 +178,15 @@ def compute_pre_daily_kpis(rows):
 # GENERACIÓN DE POST-TEST (REPRODUCIBLE CON SEMILLA FIJA)
 # ============================================================
 
-def generate_post_daily_kpis(target_iid=96, target_chr=93, target_tde=95):
-    """Simula los KPIs diarios post-test usando la misma formula del seed SQL."""
+def generate_post_daily_kpis(target_iid=96, target_chr=93, target_tde=95, cap_n=150):
+    """Simula los KPIs diarios post-test usando la misma fórmula del seed SQL.
+
+    Genera órdenes día por día hasta alcanzar cap_n (default 150 = mismo n
+    que el pre-test, para comparación paired). Esto refleja el comportamiento
+    real del seed con el EXIT WHEN post_idx >= 150.
+    """
     start = dt.date(2026, 4, 20)
-    end = dt.date(2026, 5, 31)
+    end = dt.date(2026, 5, 16)
     days = []
     d = start
     while d <= end:
@@ -189,8 +194,14 @@ def generate_post_daily_kpis(target_iid=96, target_chr=93, target_tde=95):
         d += dt.timedelta(days=1)
 
     iid, chr_, tde = [], [], []
+    total = 0
     for d in days:
-        rec_count = 3 + ((d.day + d.month * 7) % 4)
+        if total >= cap_n:
+            break
+        rec_count = 6 + ((d.day + d.month * 7) % 2)  # mismo que el seed nuevo
+        # Cortar a mitad de día si llegamos al cap
+        if total + rec_count > cap_n:
+            rec_count = cap_n - total
         iv = cv = tv = 0
         for i in range(1, rec_count + 1):
             rnd = (d.day * 7 + i * 13) % 100
@@ -200,6 +211,7 @@ def generate_post_daily_kpis(target_iid=96, target_chr=93, target_tde=95):
         iid.append(iv / rec_count * 100)
         chr_.append(cv / rec_count * 100)
         tde.append(tv / rec_count * 100)
+        total += rec_count
     return iid, chr_, tde
 
 
