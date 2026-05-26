@@ -364,11 +364,28 @@ const RoutesPage: React.FC = () => {
               </div>
               
               <div style={{ flex: 1, position: 'relative' }}>
-                <TrackingMap 
-                  center={gpsHistory.length > 0 ? [gpsHistory[0].latitude, gpsHistory[0].longitude] : (selectedRouteOrders.length > 0 ? [selectedRouteOrders[0].latitude || 0, selectedRouteOrders[0].longitude || 0] : undefined)}
+                <TrackingMap
+                  // Centro del mapa con fallbacks sanos:
+                  // 1. GPS en vivo del conductor (más fresco)
+                  // 2. Primer pedido CON lat/lng VÁLIDOS (no nulos ni 0,0)
+                  // 3. Almacén de MICOTRANS en Lima (warehousePos)
+                  // NUNCA usar [0,0] como default → cae al Golfo de Guinea (océano África).
+                  center={
+                    gpsHistory.length > 0
+                      ? [gpsHistory[0].latitude, gpsHistory[0].longitude]
+                      : (() => {
+                          const withCoords = selectedRouteOrders.find(
+                            o => o.latitude && o.longitude
+                                 && o.latitude !== 0 && o.longitude !== 0
+                          );
+                          return withCoords
+                            ? [withCoords.latitude!, withCoords.longitude!]
+                            : warehousePos;
+                        })()
+                  }
                   path={gpsHistory.map(p => [p.latitude, p.longitude] as [number, number]).reverse()}
                   plannedPath={plannedPath}
-                  markers={mapMarkers} 
+                  markers={mapMarkers}
                 />
               </div>
             </div>

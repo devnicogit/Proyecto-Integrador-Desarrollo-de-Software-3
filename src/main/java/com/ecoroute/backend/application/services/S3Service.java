@@ -6,7 +6,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import software.amazon.awssdk.core.async.AsyncRequestBody;
+import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.nio.charset.StandardCharsets;
@@ -49,5 +52,37 @@ public class S3Service {
                 .map(resp -> String.format("s3://%s/%s", bucketName, key))
                 .doOnSuccess(uri -> log.info("✅ Uploaded successfully to: {}", uri))
                 .doOnError(err -> log.error("❌ S3 upload failed: {}", err.getMessage()));
+    }
+
+    /**
+     * Descarga un objeto desde S3 dado su URI (formato: s3://bucket/key).
+     * Devuelve el contenido como byte[]. Si el objeto no existe o falla, devuelve null
+     * (el caller decide qué hacer; típicamente saltar el embed de imagen).
+     */
+    public byte[] downloadAsBytes(String s3Uri) {
+        if (s3Uri == null || s3Uri.isBlank() || !s3Uri.startsWith("s3://")) {
+            return null;
+        }
+        // s3://bucket/key  →  bucket, key
+        String stripped = s3Uri.substring(5);
+        int slash = stripped.indexOf('/');
+        if (slash < 0) return null;
+        String bucket = stripped.substring(0, slash);
+        String key    = stripped.substring(slash + 1);
+        try {
+            GetObjectRequest req = GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .build();
+            return s3AsyncClient.getObject(req, AsyncResponseTransformer.toBytes())
+                    .join()
+                    .asByteArray();
+        } catch (NoSuchKeyException e) {
+            log.warn("S3 key no existe: {}", s3Uri);
+            return null;
+        } catch (Exception e) {
+            log.warn("Falló descarga S3 {}: {}", s3Uri, e.getMessage());
+            return null;
+        }
     }
 }
